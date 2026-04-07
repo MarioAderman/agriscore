@@ -5,11 +5,20 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://agriscore:agriscore@localhost:5432/agriscore"
 
+    # LLM provider selection
+    # Set LLM_PROVIDER=openai to use OpenAI instead of Anthropic
+    # Set LLM_MODEL to override the default model for the chosen provider
+    llm_provider: str = "groq"  # "anthropic" | "openai"
+    llm_model: str = ""  # empty = use provider default
+
     # Anthropic
     anthropic_api_key: str = ""
 
-    # OpenAI (Whisper STT + TTS)
+    # OpenAI (agent + Whisper STT + TTS)
     openai_api_key: str = ""
+
+    # Groq (fast inference, OpenAI-compatible)
+    groq_api_key: str = ""
 
     # Sentinel Hub (Copernicus Data Space)
     sentinel_hub_id: str = ""
@@ -19,9 +28,9 @@ class Settings(BaseSettings):
     inegi_token: str = ""
 
     # EvolutionAPI
-    evolution_api_url: str = "http://localhost:8080"
-    evolution_api_key: str = ""
-    evolution_instance_name: str = "agriscore"
+    evolutionapi_url: str = "http://localhost:8080"
+    evolutionapi_authentication_api_key: str = ""
+    evolution_instance_name: str = "Fintegra solutions"
 
     # AWS
     aws_default_region: str = "us-east-1"
