@@ -1,6 +1,7 @@
 """Farmer API — endpoints for the farmer-facing React app."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -117,3 +118,31 @@ async def get_farmer_challenges(phone: str, db: AsyncSession = Depends(get_db)):
             for c in challenges
         ],
     }
+
+
+@router.get("/{phone}/satellite")
+async def get_satellite_image(
+    phone: str,
+    type: str = Query("ndvi", pattern="^(ndvi|rgb)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Satellite image of the farmer's parcela. type: 'ndvi' (vegetation) or 'rgb' (true color)."""
+    from app.pipeline.satellite import fetch_image
+
+    result = await db.execute(select(Farmer).where(Farmer.phone == phone))
+    farmer = result.scalar_one_or_none()
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Agricultor no encontrado")
+
+    parcela = (await db.execute(
+        select(Parcela).where(Parcela.farmer_id == farmer.id)
+    )).scalar_one_or_none()
+    if not parcela or not parcela.latitude:
+        raise HTTPException(status_code=404, detail="Sin ubicación de parcela")
+
+    png_bytes = await fetch_image(
+        latitude=parcela.latitude,
+        longitude=parcela.longitude,
+        image_type=type,
+    )
+    return Response(content=png_bytes, media_type="image/png")

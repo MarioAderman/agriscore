@@ -27,7 +27,7 @@ function evaluatePixel(sample) {
 }
 """
 
-# Color-mapped NDVI visualization (red→yellow→green)
+# Color-mapped NDVI visualization — smooth RdYlGn gradient
 NDVI_VIS_EVALSCRIPT = """
 //VERSION=3
 function setup() {
@@ -36,14 +36,40 @@ function setup() {
     output: { bands: 3, sampleType: "AUTO" }
   };
 }
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
 function evaluatePixel(sample) {
   let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
-  if (ndvi < 0.0) return [0.5, 0.5, 0.5];       // gray — water/cloud
-  if (ndvi < 0.1) return [0.8, 0.4, 0.2];         // brown — bare soil
-  if (ndvi < 0.2) return [0.9, 0.7, 0.3];         // yellow — sparse
-  if (ndvi < 0.4) return [0.6, 0.8, 0.2];         // light green
-  if (ndvi < 0.6) return [0.2, 0.7, 0.1];         // green — healthy
-  return [0.0, 0.5, 0.0];                          // dark green — dense
+
+  // Clamp to [-1, 1]
+  ndvi = Math.max(-1, Math.min(1, ndvi));
+
+  // Smooth RdYlGn colormap (5 stops: red → orange → yellow → light green → dark green)
+  var stops = [
+    [-0.2, 0.65, 0.00, 0.15],
+    [ 0.0, 0.84, 0.38, 0.00],
+    [ 0.2, 0.99, 0.88, 0.30],
+    [ 0.4, 0.63, 0.85, 0.20],
+    [ 0.6, 0.15, 0.68, 0.10],
+    [ 0.8, 0.00, 0.41, 0.10]
+  ];
+
+  // Water / nodata
+  if (ndvi < -0.2) return [0.12, 0.25, 0.50];
+
+  // Find segment and interpolate
+  for (var i = 0; i < stops.length - 1; i++) {
+    if (ndvi <= stops[i + 1][0]) {
+      var t = (ndvi - stops[i][0]) / (stops[i + 1][0] - stops[i][0]);
+      return [
+        lerp(stops[i][1], stops[i + 1][1], t),
+        lerp(stops[i][2], stops[i + 1][2], t),
+        lerp(stops[i][3], stops[i + 1][3], t)
+      ];
+    }
+  }
+  return [0.00, 0.41, 0.10];
 }
 """
 
@@ -57,7 +83,7 @@ function setup() {
   };
 }
 function evaluatePixel(sample) {
-  return [3.5 * sample.B04, 3.5 * sample.B03, 3.5 * sample.B02];
+  return [2.5 * sample.B04 / 10000, 2.5 * sample.B03 / 10000, 2.5 * sample.B02 / 10000];
 }
 """
 
@@ -81,6 +107,81 @@ async def _get_access_token() -> str:
 def _build_bbox(lat: float, lon: float, buffer_deg: float = 0.01):
     """Build a bounding box around a point. ~0.01 deg ≈ 1.1 km at equator."""
     return [lon - buffer_deg, lat - buffer_deg, lon + buffer_deg, lat + buffer_deg]
+
+
+async def fetch_image(
+    latitude: float,
+    longitude: float,
+    image_type: str = "ndvi",
+    width: int = 512,
+    height: int = 512,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> bytes:
+    """Fetch a satellite PNG image from Sentinel Hub.
+
+    image_type: "ndvi" (color-mapped vegetation) or "rgb" (true color)
+    Returns raw PNG bytes.
+    """
+    token = await _get_access_token()
+
+    now = datetime.now(timezone.utc)
+    if not date_to:
+        date_to = now.strftime("%Y-%m-%d")
+    if not date_from:
+        date_from = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+
+    evalscript = NDVI_VIS_EVALSCRIPT if image_type == "ndvi" else RGB_EVALSCRIPT
+    bbox = _build_bbox(latitude, longitude, buffer_deg=0.02)
+
+    request_body = {
+        "input": {
+            "bounds": {
+                "bbox": bbox,
+                "properties": {"crs": "http://www.opengis.net/def/crs/EPSG/0/4326"},
+            },
+            "data": [
+                {
+                    "type": "sentinel-2-l2a",
+                    "dataFilter": {
+                        "timeRange": {
+                            "from": f"{date_from}T00:00:00Z",
+                            "to": f"{date_to}T23:59:59Z",
+                        },
+                        "maxCloudCoverage": 30,
+                    },
+                    "processing": {
+                        "upsampling": "BICUBIC",
+                    },
+                }
+            ],
+        },
+        "output": {
+            "width": width,
+            "height": height,
+            "responses": [{"identifier": "default", "format": {"type": "image/png"}}],
+        },
+        "evalscript": evalscript,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            PROCESS_URL,
+            json=request_body,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+                "Accept": "image/png",
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+
+    logger.info(
+        "Satellite %s image fetched for (%.4f, %.4f): %d bytes",
+        image_type, latitude, longitude, len(response.content),
+    )
+    return response.content
 
 
 async def fetch_ndvi(

@@ -1,9 +1,9 @@
 """Bank API — endpoints consumed by financial institutions to view farmer profiles and scores."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.dependencies import get_db, verify_bank_api_key
 from app.models.database import (
@@ -232,6 +232,34 @@ async def get_farmer_expediente(farmer_id: str, db: AsyncSession = Depends(get_d
             "completed_at": application.completed_at.isoformat() if application.completed_at else None,
         },
     }
+
+
+@router.get("/farmers/{farmer_id}/satellite")
+async def get_farmer_satellite(
+    farmer_id: str,
+    type: str = Query("ndvi", pattern="^(ndvi|rgb)$"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Satellite image of a farmer's parcela. type: 'ndvi' or 'rgb'."""
+    from app.pipeline.satellite import fetch_image
+
+    result = await db.execute(select(Farmer).where(Farmer.id == farmer_id))
+    farmer = result.scalar_one_or_none()
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Agricultor no encontrado")
+
+    parcela = (await db.execute(
+        select(Parcela).where(Parcela.farmer_id == farmer.id)
+    )).scalar_one_or_none()
+    if not parcela or not parcela.latitude:
+        raise HTTPException(status_code=404, detail="Sin ubicación de parcela")
+
+    png_bytes = await fetch_image(
+        latitude=parcela.latitude,
+        longitude=parcela.longitude,
+        image_type=type,
+    )
+    return Response(content=png_bytes, media_type="image/png")
 
 
 @router.get("/stats")
