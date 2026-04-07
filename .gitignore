@@ -1,8 +1,21 @@
+# Secrets
 .env
+
+# Python
 __pycache__/
 .venv/
-node_modules/
 *.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# ML artifacts (generated — run ml/train.py to reproduce; deployed via S3)
+ml/model.pkl
+ml/training_data.csv
+
+# Claude Code internal (not project code)
 .claude/
 dev/
 CLAUDE.md
+docs/
