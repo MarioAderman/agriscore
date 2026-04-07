@@ -50,13 +50,10 @@ async def _process_message(msg: IncomingMessage):
 
         except Exception:
             logger.exception("Error processing message from %s", msg.phone)
-            try:
-                await evolution.send_text(
-                    msg.phone,
-                    "Disculpa, tuve un problema procesando tu mensaje. ¿Puedes intentar de nuevo? 🙏",
-                )
-            except Exception:
-                logger.exception("Failed to send error message to %s", msg.phone)
+            await evolution.send_text(
+                msg.phone,
+                "Disculpa, tuve un problema procesando tu mensaje. ¿Puedes intentar de nuevo? 🙏",
+            )
 
 
 @router.post("/whatsapp")

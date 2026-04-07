@@ -1,9 +1,18 @@
-"""AgriScore AI agent — Anthropic SDK with function calling."""
+"""AgriScore AI agent — supports Anthropic and OpenAI providers.
 
+Provider is selected via LLM_PROVIDER env var ("anthropic" or "openai").
+Model is selected via LLM_MODEL env var, or uses the provider default.
+
+Defaults:
+  anthropic → claude-sonnet-4-6
+  openai    → gpt-4o
+"""
+
+import json
 import logging
-from datetime import datetime, timezone
 
 import anthropic
+import openai
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +24,138 @@ from app.models.database import Farmer, Conversation, MessageRole, MessageType
 logger = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 5
-MODEL = "claude-sonnet-4-5-20250929"
 
-client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+_DEFAULT_MODELS = {
+    "anthropic": "claude-sonnet-4-6",
+    "openai": "gpt-4o",
+    "groq": "meta-llama/llama-4-scout-17b-16e-instruct",
+}
+
+_anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+_openai_client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+_groq_client = openai.AsyncOpenAI(
+    api_key=settings.groq_api_key,
+    base_url="https://api.groq.com/openai/v1",
+)
+
+
+def _active_model() -> str:
+    return settings.llm_model or _DEFAULT_MODELS.get(settings.llm_provider, "claude-sonnet-4-6")
+
+
+def _openai_tools() -> list[dict]:
+    """Convert Anthropic-style tool definitions to OpenAI function format."""
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": t["name"],
+                "description": t["description"],
+                "parameters": t["input_schema"],
+            },
+        }
+        for t in TOOL_DEFINITIONS
+    ]
+
+
+async def _run_anthropic_loop(
+    history: list[dict],
+    user_text: str,
+    phone: str,
+    db: AsyncSession,
+) -> str:
+    """Anthropic agent loop. history is plain [{role, content}] text messages."""
+    messages = list(history) + [{"role": "user", "content": user_text}]
+
+    for round_num in range(MAX_TOOL_ROUNDS):
+        logger.info("Anthropic agent round %d for %s", round_num + 1, phone)
+
+        response = await _anthropic_client.messages.create(
+            model=_active_model(),
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            tools=TOOL_DEFINITIONS,
+            messages=messages,
+        )
+
+        if response.stop_reason == "tool_use":
+            messages.append({"role": "assistant", "content": response.content})
+
+            tool_results = []
+            for block in response.content:
+                if block.type == "tool_use":
+                    logger.info("Tool call: %s(%s)", block.name, block.input)
+                    result_text = await execute_tool(block.name, block.input, phone, db)
+                    logger.info("Tool result: %s", result_text[:100])
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result_text,
+                    })
+
+            messages.append({"role": "user", "content": tool_results})
+
+        elif response.stop_reason == "end_turn":
+            return "".join(
+                block.text for block in response.content if hasattr(block, "text")
+            )
+        else:
+            logger.warning("Unexpected stop_reason: %s", response.stop_reason)
+            return "Disculpa, hubo un problema. ¿Puedes intentar de nuevo?"
+
+    return "Disculpa, el procesamiento tomó demasiado tiempo. ¿Puedes intentar de nuevo?"
+
+
+async def _run_openai_loop(
+    history: list[dict],
+    user_text: str,
+    phone: str,
+    db: AsyncSession,
+    client: openai.AsyncOpenAI = None,
+) -> str:
+    """OpenAI-compatible agent loop (works for OpenAI and Groq).
+
+    history is plain [{role, content}] text messages.
+    """
+    if client is None:
+        client = _openai_client
+    messages = (
+        [{"role": "system", "content": SYSTEM_PROMPT}]
+        + list(history)
+        + [{"role": "user", "content": user_text}]
+    )
+    tools = _openai_tools()
+
+    for round_num in range(MAX_TOOL_ROUNDS):
+        logger.info("OpenAI-compat agent round %d for %s", round_num + 1, phone)
+
+        response = await client.chat.completions.create(
+            model=_active_model(),
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+        )
+
+        msg = response.choices[0].message
+
+        if msg.tool_calls:
+            messages.append(msg)
+
+            for call in msg.tool_calls:
+                tool_input = json.loads(call.function.arguments)
+                logger.info("Tool call: %s(%s)", call.function.name, tool_input)
+                result_text = await execute_tool(call.function.name, tool_input, phone, db)
+                logger.info("Tool result: %s", result_text[:100])
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call.id,
+                    "content": result_text,
+                })
+
+        else:
+            return msg.content or "Disculpa, no pude generar una respuesta."
+
+    return "Disculpa, el procesamiento tomó demasiado tiempo. ¿Puedes intentar de nuevo?"
 
 
 async def run_agent(
@@ -37,24 +175,19 @@ async def run_agent(
         await db.commit()
         await db.refresh(farmer)
 
-    # Load conversation history (last 20 messages for context window)
+    # Load conversation history — last 20 messages, plain text only
     result = await db.execute(
         select(Conversation)
         .where(Conversation.farmer_id == farmer.id)
         .order_by(Conversation.timestamp.desc())
         .limit(20)
     )
-    history_rows = list(reversed(result.scalars().all()))
+    history = [
+        {"role": row.role.value, "content": row.content}
+        for row in reversed(result.scalars().all())
+    ]
 
-    # Build messages list for Anthropic API
-    messages = []
-    for row in history_rows:
-        messages.append({"role": row.role.value, "content": row.content})
-
-    # Add current user message
-    messages.append({"role": "user", "content": user_text})
-
-    # Save user message to DB
+    # Save incoming user message
     db.add(Conversation(
         farmer_id=farmer.id,
         role=MessageRole.user,
@@ -63,60 +196,18 @@ async def run_agent(
     ))
     await db.commit()
 
-    # Agent loop with tool calling
-    final_text = ""
-    for round_num in range(MAX_TOOL_ROUNDS):
-        logger.info("Agent round %d for %s", round_num + 1, phone)
+    # Dispatch to provider loop
+    provider = settings.llm_provider
+    logger.info("Running agent with provider=%s model=%s", provider, _active_model())
 
-        response = await client.messages.create(
-            model=MODEL,
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            tools=TOOL_DEFINITIONS,
-            messages=messages,
-        )
-
-        # Check if the model wants to use tools
-        if response.stop_reason == "tool_use":
-            # Add assistant response to messages
-            messages.append({"role": "assistant", "content": response.content})
-
-            # Process all tool calls in this response
-            tool_results = []
-            for block in response.content:
-                if block.type == "tool_use":
-                    logger.info("Tool call: %s(%s)", block.name, block.input)
-                    result_text = await execute_tool(
-                        tool_name=block.name,
-                        tool_input=block.input,
-                        phone=phone,
-                        db=db,
-                    )
-                    logger.info("Tool result: %s", result_text[:100])
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result_text,
-                    })
-
-            # Send tool results back
-            messages.append({"role": "user", "content": tool_results})
-
-        elif response.stop_reason == "end_turn":
-            # Extract final text response
-            for block in response.content:
-                if hasattr(block, "text"):
-                    final_text += block.text
-            break
-        else:
-            logger.warning("Unexpected stop_reason: %s", response.stop_reason)
-            final_text = "Disculpa, hubo un problema. ¿Puedes intentar de nuevo?"
-            break
+    if provider == "groq":
+        final_text = await _run_openai_loop(history, user_text, phone, db, client=_groq_client)
+    elif provider == "openai":
+        final_text = await _run_openai_loop(history, user_text, phone, db, client=_openai_client)
     else:
-        # Exhausted tool rounds
-        final_text = "Disculpa, el procesamiento tomó demasiado tiempo. ¿Puedes intentar de nuevo?"
+        final_text = await _run_anthropic_loop(history, user_text, phone, db)
 
-    # Save assistant response to DB
+    # Save assistant response
     if final_text:
         db.add(Conversation(
             farmer_id=farmer.id,
