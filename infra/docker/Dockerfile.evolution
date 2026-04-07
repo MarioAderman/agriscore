@@ -1,0 +1,2 @@
+FROM atendai/evolution-api:v2.2.3
+# EvolutionAPI configured entirely via environment variables in docker-compose / ECS task definition
