@@ -27,6 +27,40 @@ function evaluatePixel(sample) {
 }
 """
 
+# Color-mapped NDVI visualization (red→yellow→green)
+NDVI_VIS_EVALSCRIPT = """
+//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["B04", "B08"], units: "DN" }],
+    output: { bands: 3, sampleType: "AUTO" }
+  };
+}
+function evaluatePixel(sample) {
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  if (ndvi < 0.0) return [0.5, 0.5, 0.5];       // gray — water/cloud
+  if (ndvi < 0.1) return [0.8, 0.4, 0.2];         // brown — bare soil
+  if (ndvi < 0.2) return [0.9, 0.7, 0.3];         // yellow — sparse
+  if (ndvi < 0.4) return [0.6, 0.8, 0.2];         // light green
+  if (ndvi < 0.6) return [0.2, 0.7, 0.1];         // green — healthy
+  return [0.0, 0.5, 0.0];                          // dark green — dense
+}
+"""
+
+# True color (RGB) visualization
+RGB_EVALSCRIPT = """
+//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["B04", "B03", "B02"], units: "DN" }],
+    output: { bands: 3, sampleType: "AUTO" }
+  };
+}
+function evaluatePixel(sample) {
+  return [3.5 * sample.B04, 3.5 * sample.B03, 3.5 * sample.B02];
+}
+"""
+
 
 async def _get_access_token() -> str:
     """Get OAuth2 access token from Copernicus Data Space."""

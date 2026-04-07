@@ -37,19 +37,26 @@ async def run_pipeline_local(application_id: str, base_url: str = "http://localh
             if isinstance(r, Exception):
                 logger.error("Parallel step %d failed: %s", i + 2, r)
             else:
-                logger.info("Parallel step result: %s", r.json().get("step"))
+                try:
+                    data = r.json()
+                    logger.info("Parallel step result: %s — %s", data.get("step"), data.get("status"))
+                except Exception:
+                    logger.error("Parallel step %d returned non-JSON (status %s)", i + 2, r.status_code)
 
         # Step 4: Calculate score
         logger.info("Pipeline: Step 4 — Calculate score")
         r = await client.post(f"{base_url}/api/internal/calculate-score/{application_id}")
         step4 = r.json()
+        if step4.get("status") == "error":
+            logger.error("Step 4 failed: %s", step4)
+            return step4
 
         # Step 5: Generate expediente
         logger.info("Pipeline: Step 5 — Generate expediente")
         r = await client.post(f"{base_url}/api/internal/generate-expediente/{application_id}")
         step5 = r.json()
 
-        logger.info("Pipeline completed for %s", application_id)
+        logger.info("Pipeline completed for %s: score=%.0f", application_id, step4.get("total_score", 0))
         return step5
 
 
