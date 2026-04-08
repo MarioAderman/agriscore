@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════
+   AgriScore — Dark Agricultural Design System
+   Based on Ana's Figma designs
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Backgrounds */
+  --bg-primary: #23303e;
+  --bg-darker: #1b2631;
+  --bg-darkest: #131b23;
+  --bg-card: #273746;
+  --bg-card-alt: #293b4e;
+  --bg-card-elevated: #2c3b4b;
+  --bg-card-highlight: #364556;
+  --bg-nav: #273441;
+
+  /* Accent */
+  --accent: #4ade80;
+  --accent-bright: #7be366;
+  --accent-vivid: #7ff16e;
+  --accent-ui: #22c55e;
+  --accent-dark: #27ce27;
+
+  /* Text */
+  --text-primary: #f8fafc;
+  --text-secondary: #99abbc;
+  --text-muted: #8da1b5;
+  --text-label: #91919f;
+  --text-nav-inactive: #61748b;
+
+  /* Status */
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  --status-caution: #eab308;
+
+  /* Score gauge gradient stops */
+  --gauge-red: #dc6050;
+  --gauge-orange: #e19951;
+  --gauge-yellow: #e9c64a;
+  --gauge-lime: #dfe744;
+  --gauge-light-green: #b5e833;
+  --gauge-green: #52eb33;
+}
+
+@theme inline {
+  /* Backgrounds */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-darker: var(--bg-darker);
+  --color-bg-darkest: var(--bg-darkest);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-alt: var(--bg-card-alt);
+  --color-bg-card-elevated: var(--bg-card-elevated);
+  --color-bg-card-highlight: var(--bg-card-highlight);
+  --color-bg-nav: var(--bg-nav);
+
+  /* Accent */
+  --color-accent: var(--accent);
+  --color-accent-bright: var(--accent-bright);
+  --color-accent-vivid: var(--accent-vivid);
+  --color-accent-ui: var(--accent-ui);
+  --color-accent-dark: var(--accent-dark);
+
+  /* Text */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-label: var(--text-label);
+  --color-text-nav-inactive: var(--text-nav-inactive);
+
+  /* Status */
+  --color-warning: var(--status-warning);
+  --color-danger: var(--status-danger);
+  --color-caution: var(--status-caution);
+
+  /* Gauge */
+  --color-gauge-red: var(--gauge-red);
+  --color-gauge-orange: var(--gauge-orange);
+  --color-gauge-yellow: var(--gauge-yellow);
+  --color-gauge-lime: var(--gauge-lime);
+  --color-gauge-light-green: var(--gauge-light-green);
+  --color-gauge-green: var(--gauge-green);
+
+  /* Typography */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-noto-sans);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-card: 12px;
+  --radius-card-lg: 16px;
+  --radius-pill: 9999px;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Responsive base font — scales everything up on larger screens */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (min-width: 768px) {
+  html { font-size: 17px; }
+}
+
+@media (min-width: 1280px) {
+  html { font-size: 18px; }
+}
+
+/* Selection color */
+::selection {
+  background: rgba(74, 222, 128, 0.25);
+}
