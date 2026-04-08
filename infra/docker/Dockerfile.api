@@ -14,12 +14,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-# Copy application code + ML training scripts
+# Copy application code
 COPY app/ app/
-COPY ml/ ml/
-
-# Generate synthetic data + train ML model at build time (both are gitignored)
-RUN uv run python ml/generate_data.py && uv run python ml/train.py
 
 EXPOSE 8000
 
