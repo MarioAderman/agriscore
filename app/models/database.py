@@ -1,10 +1,11 @@
+import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Float, Boolean, Integer, Text, Enum as SAEnum, ForeignKey, JSON, DateTime
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-import enum
 
 
 class Base(DeclarativeBase):
@@ -12,6 +13,7 @@ class Base(DeclarativeBase):
 
 
 # --- Enums ---
+
 
 class ApplicationStatus(str, enum.Enum):
     pending = "pending"
@@ -41,6 +43,7 @@ class ChallengeStatus(str, enum.Enum):
 
 
 # --- Models ---
+
 
 class Farmer(Base):
     __tablename__ = "farmers"
@@ -86,10 +89,18 @@ class Application(Base):
 
     farmer: Mapped["Farmer"] = relationship(back_populates="applications")
     parcela: Mapped["Parcela"] = relationship(back_populates="applications")
-    satellite_data: Mapped["SatelliteData | None"] = relationship(back_populates="application", cascade="all, delete-orphan")
-    climate_data: Mapped["ClimateData | None"] = relationship(back_populates="application", cascade="all, delete-orphan")
-    socioeconomic_data: Mapped["SocioeconomicData | None"] = relationship(back_populates="application", cascade="all, delete-orphan")
-    agriscore_result: Mapped["AgriScoreResult | None"] = relationship(back_populates="application", cascade="all, delete-orphan")
+    satellite_data: Mapped["SatelliteData | None"] = relationship(
+        back_populates="application", cascade="all, delete-orphan"
+    )
+    climate_data: Mapped["ClimateData | None"] = relationship(
+        back_populates="application", cascade="all, delete-orphan"
+    )
+    socioeconomic_data: Mapped["SocioeconomicData | None"] = relationship(
+        back_populates="application", cascade="all, delete-orphan"
+    )
+    agriscore_result: Mapped["AgriScoreResult | None"] = relationship(
+        back_populates="application", cascade="all, delete-orphan"
+    )
 
 
 class SatelliteData(Base):
@@ -157,7 +168,9 @@ class Conversation(Base):
     role: Mapped[MessageRole] = mapped_column(SAEnum(MessageRole))
     content: Mapped[str] = mapped_column(Text)
     message_type: Mapped[MessageType] = mapped_column(SAEnum(MessageType), default=MessageType.text)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
 
     farmer: Mapped["Farmer"] = relationship(back_populates="conversations")
 

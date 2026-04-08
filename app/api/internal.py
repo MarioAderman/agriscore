@@ -9,25 +9,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
 from app.models.database import (
+    AgriScoreResult,
     Application,
     ApplicationStatus,
-    Parcela,
-    Farmer,
-    SatelliteData,
     ClimateData,
+    Farmer,
+    Parcela,
+    SatelliteData,
     SocioeconomicData,
-    AgriScoreResult,
 )
-from app.pipeline import satellite, climate, socioeconomic, document, scoring, expediente
+from app.pipeline import climate, document, expediente, satellite, scoring, socioeconomic
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
 async def _get_application(application_id: str, db: AsyncSession) -> Application | None:
-    result = await db.execute(
-        select(Application).where(Application.id == application_id)
-    )
+    result = await db.execute(select(Application).where(Application.id == application_id))
     return result.scalar_one_or_none()
 
 
@@ -190,19 +188,13 @@ async def calculate_score(
     parcela = await _get_parcela(app.parcela_id, db)
 
     # Load pipeline data from DB
-    sat_result = await db.execute(
-        select(SatelliteData).where(SatelliteData.application_id == app.id)
-    )
+    sat_result = await db.execute(select(SatelliteData).where(SatelliteData.application_id == app.id))
     sat = sat_result.scalar_one_or_none()
 
-    clim_result = await db.execute(
-        select(ClimateData).where(ClimateData.application_id == app.id)
-    )
+    clim_result = await db.execute(select(ClimateData).where(ClimateData.application_id == app.id))
     clim = clim_result.scalar_one_or_none()
 
-    socio_result = await db.execute(
-        select(SocioeconomicData).where(SocioeconomicData.application_id == app.id)
-    )
+    socio_result = await db.execute(select(SocioeconomicData).where(SocioeconomicData.application_id == app.id))
     socio = socio_result.scalar_one_or_none()
 
     if not sat or not clim:
@@ -261,9 +253,7 @@ async def generate_expediente(application_id: str, db: AsyncSession = Depends(ge
     farmer_result = await db.execute(select(Farmer).where(Farmer.id == app.farmer_id))
     farmer = farmer_result.scalar_one_or_none()
 
-    score_result = await db.execute(
-        select(AgriScoreResult).where(AgriScoreResult.application_id == app.id)
-    )
+    score_result = await db.execute(select(AgriScoreResult).where(AgriScoreResult.application_id == app.id))
     score = score_result.scalar_one_or_none()
 
     if not score:

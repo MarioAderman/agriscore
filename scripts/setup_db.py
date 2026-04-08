@@ -94,7 +94,7 @@ def main():
     lines = []
     if os.path.exists(env_path):
         with open(env_path) as f:
-            lines = [l for l in f.readlines() if not l.startswith("DATABASE_URL=")]
+            lines = [line for line in f.readlines() if not line.startswith("DATABASE_URL=")]
 
     lines.append(f"DATABASE_URL={database_url}\n")
     with open(env_path, "w") as f:

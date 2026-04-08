@@ -7,12 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db
 from app.models.database import (
-    Farmer,
-    Parcela,
-    Application,
     AgriScoreResult,
+    Application,
     Challenge,
     ChallengeStatus,
+    Farmer,
+    Parcela,
 )
 
 router = APIRouter()
@@ -26,9 +26,7 @@ async def get_farmer_profile(phone: str, db: AsyncSession = Depends(get_db)):
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
-    parcela_result = await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )
+    parcela_result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
     parcela = parcela_result.scalar_one_or_none()
 
     return {
@@ -41,7 +39,9 @@ async def get_farmer_profile(phone: str, db: AsyncSession = Depends(get_db)):
             "longitude": parcela.longitude,
             "crop_type": parcela.crop_type,
             "area_hectares": parcela.area_hectares,
-        } if parcela else None,
+        }
+        if parcela
+        else None,
     }
 
 
@@ -53,12 +53,14 @@ async def get_farmer_agriscore(phone: str, db: AsyncSession = Depends(get_db)):
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
-    scores = (await db.execute(
-        select(AgriScoreResult, Application.created_at.label("app_created"))
-        .join(Application, AgriScoreResult.application_id == Application.id)
-        .where(Application.farmer_id == farmer.id)
-        .order_by(AgriScoreResult.created_at.desc())
-    )).all()
+    scores = (
+        await db.execute(
+            select(AgriScoreResult, Application.created_at.label("app_created"))
+            .join(Application, AgriScoreResult.application_id == Application.id)
+            .where(Application.farmer_id == farmer.id)
+            .order_by(AgriScoreResult.created_at.desc())
+        )
+    ).all()
 
     if not scores:
         return {"has_score": False, "message": "Aún no tienes un AgriScore."}
@@ -74,9 +76,7 @@ async def get_farmer_agriscore(phone: str, db: AsyncSession = Depends(get_db)):
             "sub_esg": round(latest.sub_esg, 1),
             "scored_at": latest.created_at.isoformat(),
             "risk_category": (
-                "bajo" if latest.total_score >= 65
-                else "moderado" if latest.total_score >= 40
-                else "alto"
+                "bajo" if latest.total_score >= 65 else "moderado" if latest.total_score >= 40 else "alto"
             ),
         },
         "history": [
@@ -97,11 +97,11 @@ async def get_farmer_challenges(phone: str, db: AsyncSession = Depends(get_db)):
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
-    challenges = (await db.execute(
-        select(Challenge)
-        .where(Challenge.farmer_id == farmer.id)
-        .order_by(Challenge.sent_at.desc())
-    )).scalars().all()
+    challenges = (
+        (await db.execute(select(Challenge).where(Challenge.farmer_id == farmer.id).order_by(Challenge.sent_at.desc())))
+        .scalars()
+        .all()
+    )
 
     return {
         "total": len(challenges),
@@ -134,9 +134,7 @@ async def get_satellite_image(
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
-    parcela = (await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )).scalar_one_or_none()
+    parcela = (await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))).scalar_one_or_none()
     if not parcela or not parcela.latitude:
         raise HTTPException(status_code=404, detail="Sin ubicación de parcela")
 

@@ -74,9 +74,7 @@ async def send_audio(phone: str, audio_url: str) -> dict:
     )
 
 
-async def send_location(
-    phone: str, latitude: float, longitude: float, name: str = "", address: str = ""
-) -> dict:
+async def send_location(phone: str, latitude: float, longitude: float, name: str = "", address: str = "") -> dict:
     """Send a location pin."""
     return await _post(
         f"/message/sendLocation/{INSTANCE}",

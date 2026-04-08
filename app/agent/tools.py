@@ -1,18 +1,16 @@
 """Tool definitions and executors for the AgriScore AI agent."""
 
 import logging
-import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.database import (
+    AgriScoreResult,
+    Application,
+    ApplicationStatus,
     Farmer,
     Parcela,
-    Application,
-    AgriScoreResult,
-    ApplicationStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -79,6 +77,7 @@ TOOL_DEFINITIONS = [
 
 # --- Tool executors ---
 
+
 async def execute_tool(
     tool_name: str,
     tool_input: dict,
@@ -123,9 +122,7 @@ async def _save_farmer_profile(phone: str, inputs: dict, db: AsyncSession) -> st
     # If crop_type provided, update or create the first parcela
     crop_type = inputs.get("crop_type")
     if crop_type:
-        result = await db.execute(
-            select(Parcela).where(Parcela.farmer_id == farmer.id)
-        )
+        result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
         parcela = result.scalar_one_or_none()
         if parcela:
             parcela.crop_type = crop_type
@@ -147,9 +144,7 @@ async def _save_location(phone: str, inputs: dict, db: AsyncSession) -> str:
     lat = inputs["latitude"]
     lon = inputs["longitude"]
 
-    result = await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )
+    result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
     parcela = result.scalar_one_or_none()
 
     if parcela:
@@ -169,9 +164,7 @@ async def _trigger_evaluation(phone: str, db: AsyncSession) -> str:
     if not farmer:
         return "Error: agricultor no encontrado."
 
-    result = await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )
+    result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
     parcela = result.scalar_one_or_none()
     if not parcela or not parcela.latitude:
         return "Error: necesito la ubicación GPS de la parcela antes de evaluar."
@@ -194,6 +187,7 @@ async def _trigger_evaluation(phone: str, db: AsyncSession) -> str:
 
     # Trigger pipeline asynchronously (fire-and-forget)
     import asyncio
+
     from app.pipeline.orchestrator import trigger_step_functions
 
     asyncio.create_task(trigger_step_functions(str(application.id)))

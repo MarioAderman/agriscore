@@ -30,44 +30,58 @@ def predict_agriscore(
     """
     crop_idx = CROP_TYPES.index(crop_type.lower()) if crop_type and crop_type.lower() in CROP_TYPES else 0
 
-    features = np.array([[
-        ndvi_mean,
-        ndvi_trend,
-        avg_temperature,
-        total_precipitation,
-        soil_moisture,
-        et0,
-        area_hectares,
-        crop_idx,
-        agri_establishments,
-        months_active,
-        challenges_completed,
-    ]])
+    features = np.array(
+        [
+            [
+                ndvi_mean,
+                ndvi_trend,
+                avg_temperature,
+                total_precipitation,
+                soil_moisture,
+                et0,
+                area_hectares,
+                crop_idx,
+                agri_establishments,
+                months_active,
+                challenges_completed,
+            ]
+        ]
+    )
 
     # ML model prediction
     total_score = float(np.clip(model.predict(features)[0], 0, 100))
 
     # Deterministic sub-scores (same formulas as training data generation)
-    sub_productive = float(np.clip(
-        (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20),
-        0, 100,
-    ))
-    sub_climate = float(np.clip(
-        (1 - abs(avg_temperature - 24) / 20) * 40
-        + (min(total_precipitation, 1200) / 1200) * 30
-        + soil_moisture * 30,
-        0, 100,
-    ))
-    sub_behavioral = float(np.clip(
-        (challenges_completed / max(months_active, 1)) * 60
-        + (min(months_active, 12) / 12) * 40,
-        0, 100,
-    ))
-    sub_esg = float(np.clip(
-        (max(ndvi_trend, 0) / 0.15) * 50
-        + (challenges_completed / 12) * 50,
-        0, 100,
-    ))
+    sub_productive = float(
+        np.clip(
+            (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20),
+            0,
+            100,
+        )
+    )
+    sub_climate = float(
+        np.clip(
+            (1 - abs(avg_temperature - 24) / 20) * 40
+            + (min(total_precipitation, 1200) / 1200) * 30
+            + soil_moisture * 30,
+            0,
+            100,
+        )
+    )
+    sub_behavioral = float(
+        np.clip(
+            (challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40,
+            0,
+            100,
+        )
+    )
+    sub_esg = float(
+        np.clip(
+            (max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50,
+            0,
+            100,
+        )
+    )
 
     result = {
         "total_score": round(total_score, 1),

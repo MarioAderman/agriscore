@@ -1,12 +1,9 @@
-import asyncio
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, BackgroundTasks, Request
 
-from app.dependencies import get_db
-from app.agent.handler import IncomingMessage, parse_webhook
 from app.agent.agent import run_agent
+from app.agent.handler import IncomingMessage, parse_webhook
 from app.services import evolution
 
 router = APIRouter()
@@ -23,9 +20,7 @@ async def _process_message(msg: IncomingMessage):
             if msg.message_type == "text":
                 user_text = msg.text or ""
             elif msg.message_type == "location":
-                user_text = (
-                    f"[Ubicación compartida: lat={msg.latitude}, lon={msg.longitude}]"
-                )
+                user_text = f"[Ubicación compartida: lat={msg.latitude}, lon={msg.longitude}]"
             elif msg.message_type == "image":
                 user_text = f"[Foto enviada]{': ' + msg.text if msg.text else ''}"
             elif msg.message_type == "audio":

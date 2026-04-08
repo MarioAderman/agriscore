@@ -3,8 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-
 # --- Farmer ---
+
 
 class FarmerBase(BaseModel):
     phone: str
@@ -25,6 +25,7 @@ class FarmerResponse(FarmerBase):
 
 # --- Parcela ---
 
+
 class ParcelaCreate(BaseModel):
     latitude: float
     longitude: float
@@ -43,6 +44,7 @@ class ParcelaResponse(ParcelaCreate):
 
 # --- AgriScore ---
 
+
 class AgriScoreResponse(BaseModel):
     total_score: float
     sub_productive: float
@@ -57,6 +59,7 @@ class AgriScoreResponse(BaseModel):
 
 # --- Application ---
 
+
 class ApplicationResponse(BaseModel):
     id: uuid.UUID
     farmer_id: uuid.UUID
@@ -69,6 +72,7 @@ class ApplicationResponse(BaseModel):
 
 
 # --- Bank ---
+
 
 class FarmerSummary(BaseModel):
     id: uuid.UUID
@@ -86,6 +90,7 @@ class BankStats(BaseModel):
 
 
 # --- Pipeline ---
+
 
 class PipelineStepResult(BaseModel):
     application_id: str

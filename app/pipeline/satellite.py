@@ -179,7 +179,10 @@ async def fetch_image(
 
     logger.info(
         "Satellite %s image fetched for (%.4f, %.4f): %d bytes",
-        image_type, latitude, longitude, len(response.content),
+        image_type,
+        latitude,
+        longitude,
+        len(response.content),
     )
     return response.content
 
@@ -252,7 +255,9 @@ async def fetch_ndvi(
 
     logger.info(
         "NDVI fetched for (%.4f, %.4f): mean=%.3f",
-        latitude, longitude, ndvi_stats["ndvi_mean"],
+        latitude,
+        longitude,
+        ndvi_stats["ndvi_mean"],
     )
 
     return {
@@ -274,11 +279,13 @@ def _compute_ndvi_stats(tiff_data: bytes) -> dict:
     """
     try:
         import io
-        import numpy as np
-        from PIL import Image
 
         # Try to read as TIFF from tar
         import tarfile
+
+        import numpy as np
+        from PIL import Image
+
         tar = tarfile.open(fileobj=io.BytesIO(tiff_data))
         for member in tar.getmembers():
             if member.name.endswith(".tif") or member.name.endswith(".tiff"):

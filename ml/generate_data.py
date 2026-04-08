@@ -46,24 +46,24 @@ def generate_profile() -> dict:
     # Compute sub-scores (deterministic formulas)
     sub_productive = np.clip(
         (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20),
-        0, 100,
+        0,
+        100,
     )
     sub_climate = np.clip(
         # Moderate temp is better, adequate rain, good moisture
-        (1 - abs(avg_temperature - 24) / 20) * 40
-        + (min(total_precipitation, 1200) / 1200) * 30
-        + soil_moisture * 30,
-        0, 100,
+        (1 - abs(avg_temperature - 24) / 20) * 40 + (min(total_precipitation, 1200) / 1200) * 30 + soil_moisture * 30,
+        0,
+        100,
     )
     sub_behavioral = np.clip(
-        (challenges_completed / max(months_active, 1)) * 60
-        + (min(months_active, 12) / 12) * 40,
-        0, 100,
+        (challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40,
+        0,
+        100,
     )
     sub_esg = np.clip(
-        (max(ndvi_trend, 0) / 0.15) * 50
-        + (challenges_completed / 12) * 50,
-        0, 100,
+        (max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50,
+        0,
+        100,
     )
 
     # Total AgriScore: weighted combination + noise
@@ -73,7 +73,8 @@ def generate_profile() -> dict:
         + 0.20 * sub_behavioral
         + 0.15 * sub_esg
         + np.random.normal(0, 3),  # Small noise
-        0, 100,
+        0,
+        100,
     )
 
     return {

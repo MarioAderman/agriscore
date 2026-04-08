@@ -70,8 +70,9 @@ async def trigger_step_functions(application_id: str):
         return await run_pipeline_local(application_id)
 
     # TODO: Implement Step Functions StartExecution via boto3
-    import boto3
     import json
+
+    import boto3
 
     sfn = boto3.client("stepfunctions", region_name=settings.aws_default_region)
     response = sfn.start_execution(

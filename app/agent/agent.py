@@ -16,10 +16,10 @@ import openai
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
 from app.agent.prompts import SYSTEM_PROMPT
 from app.agent.tools import TOOL_DEFINITIONS, execute_tool
-from app.models.database import Farmer, Conversation, MessageRole, MessageType
+from app.config import settings
+from app.models.database import Conversation, Farmer, MessageRole, MessageType
 
 logger = logging.getLogger(__name__)
 
@@ -87,18 +87,18 @@ async def _run_anthropic_loop(
                     logger.info("Tool call: %s(%s)", block.name, block.input)
                     result_text = await execute_tool(block.name, block.input, phone, db)
                     logger.info("Tool result: %s", result_text[:100])
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result_text,
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result_text,
+                        }
+                    )
 
             messages.append({"role": "user", "content": tool_results})
 
         elif response.stop_reason == "end_turn":
-            return "".join(
-                block.text for block in response.content if hasattr(block, "text")
-            )
+            return "".join(block.text for block in response.content if hasattr(block, "text"))
         else:
             logger.warning("Unexpected stop_reason: %s", response.stop_reason)
             return "Disculpa, hubo un problema. ¿Puedes intentar de nuevo?"
@@ -119,11 +119,7 @@ async def _run_openai_loop(
     """
     if client is None:
         client = _openai_client
-    messages = (
-        [{"role": "system", "content": SYSTEM_PROMPT}]
-        + list(history)
-        + [{"role": "user", "content": user_text}]
-    )
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + list(history) + [{"role": "user", "content": user_text}]
     tools = _openai_tools()
 
     for round_num in range(MAX_TOOL_ROUNDS):
@@ -146,11 +142,13 @@ async def _run_openai_loop(
                 logger.info("Tool call: %s(%s)", call.function.name, tool_input)
                 result_text = await execute_tool(call.function.name, tool_input, phone, db)
                 logger.info("Tool result: %s", result_text[:100])
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": call.id,
-                    "content": result_text,
-                })
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": call.id,
+                        "content": result_text,
+                    }
+                )
 
         else:
             return msg.content or "Disculpa, no pude generar una respuesta."
@@ -182,18 +180,17 @@ async def run_agent(
         .order_by(Conversation.timestamp.desc())
         .limit(20)
     )
-    history = [
-        {"role": row.role.value, "content": row.content}
-        for row in reversed(result.scalars().all())
-    ]
+    history = [{"role": row.role.value, "content": row.content} for row in reversed(result.scalars().all())]
 
     # Save incoming user message
-    db.add(Conversation(
-        farmer_id=farmer.id,
-        role=MessageRole.user,
-        content=user_text,
-        message_type=MessageType(message_type) if message_type in MessageType.__members__ else MessageType.text,
-    ))
+    db.add(
+        Conversation(
+            farmer_id=farmer.id,
+            role=MessageRole.user,
+            content=user_text,
+            message_type=MessageType(message_type) if message_type in MessageType.__members__ else MessageType.text,
+        )
+    )
     await db.commit()
 
     # Dispatch to provider loop
@@ -209,12 +206,14 @@ async def run_agent(
 
     # Save assistant response
     if final_text:
-        db.add(Conversation(
-            farmer_id=farmer.id,
-            role=MessageRole.assistant,
-            content=final_text,
-            message_type=MessageType.text,
-        ))
+        db.add(
+            Conversation(
+                farmer_id=farmer.id,
+                role=MessageRole.assistant,
+                content=final_text,
+                message_type=MessageType.text,
+            )
+        )
         await db.commit()
 
     return final_text

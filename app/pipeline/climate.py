@@ -93,7 +93,12 @@ async def fetch_climate_data(
 
     logger.info(
         "Climate data for (%.4f, %.4f): temp=%.1f°C, precip=%.0fmm, ET0=%.1f, moisture=%.3f",
-        latitude, longitude, avg_temp, total_precip, avg_et0, soil_moisture,
+        latitude,
+        longitude,
+        avg_temp,
+        total_precip,
+        avg_et0,
+        soil_moisture,
     )
 
     return result

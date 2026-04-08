@@ -9,15 +9,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class IncomingMessage:
     """Normalized message from any WhatsApp input type."""
-    phone: str           # Sender phone number (without @s.whatsapp.net)
-    text: str | None     # Text content (or transcription for voice)
-    image_url: str | None     # Direct URL for image
-    audio_url: str | None     # Direct URL for audio/voice note
+
+    phone: str  # Sender phone number (without @s.whatsapp.net)
+    text: str | None  # Text content (or transcription for voice)
+    image_url: str | None  # Direct URL for image
+    audio_url: str | None  # Direct URL for audio/voice note
     document_url: str | None  # Direct URL for document
     latitude: float | None
     longitude: float | None
-    message_type: str    # text, image, audio, location, document
-    raw: dict            # Original payload for debugging
+    message_type: str  # text, image, audio, location, document
+    raw: dict  # Original payload for debugging
 
 
 def parse_webhook(payload: dict) -> IncomingMessage | None:
@@ -121,9 +122,9 @@ def parse_webhook(payload: dict) -> IncomingMessage | None:
         )
 
     if "documentMessage" in message or "documentWithCaptionMessage" in message:
-        doc = message.get("documentMessage") or message.get(
-            "documentWithCaptionMessage", {}
-        ).get("message", {}).get("documentMessage", {})
+        doc = message.get("documentMessage") or message.get("documentWithCaptionMessage", {}).get("message", {}).get(
+            "documentMessage", {}
+        )
         return IncomingMessage(
             phone=phone,
             text=doc.get("caption") or doc.get("fileName"),

@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import bank, farmer, internal, webhook
 from app.config import settings
-from app.api import webhook, farmer, bank, internal
 from app.db.connection import engine
 from app.models.database import Base
 
@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     # Load ML model into app state
     try:
         import joblib
+
         app.state.ml_model = joblib.load("ml/model.pkl")
         logger.info("ML model loaded")
     except FileNotFoundError:

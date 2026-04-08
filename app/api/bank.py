@@ -2,21 +2,21 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db, verify_bank_api_key
 from app.models.database import (
-    Farmer,
-    Parcela,
+    AgriScoreResult,
     Application,
     ApplicationStatus,
-    AgriScoreResult,
-    SatelliteData,
-    ClimateData,
-    SocioeconomicData,
     Challenge,
     ChallengeStatus,
+    ClimateData,
+    Farmer,
+    Parcela,
+    SatelliteData,
+    SocioeconomicData,
 )
 
 router = APIRouter(dependencies=[Depends(verify_bank_api_key)])
@@ -67,17 +67,13 @@ async def list_farmers(db: AsyncSession = Depends(get_db)):
 @router.get("/farmers/{farmer_id}")
 async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
     """Full farmer profile with latest sub-scores and parcela info."""
-    result = await db.execute(
-        select(Farmer).where(Farmer.id == farmer_id)
-    )
+    result = await db.execute(select(Farmer).where(Farmer.id == farmer_id))
     farmer = result.scalar_one_or_none()
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
     # Parcela
-    parcela_result = await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )
+    parcela_result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
     parcela = parcela_result.scalar_one_or_none()
 
     # Latest completed application with score
@@ -91,9 +87,7 @@ async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
     score_row = score_result.first()
 
     # Challenges
-    challenge_result = await db.execute(
-        select(Challenge).where(Challenge.farmer_id == farmer.id)
-    )
+    challenge_result = await db.execute(select(Challenge).where(Challenge.farmer_id == farmer.id))
     challenges = challenge_result.scalars().all()
 
     # Total evaluations
@@ -135,11 +129,7 @@ async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
             "sub_behavioral": round(score.sub_behavioral, 1),
             "sub_esg": round(score.sub_esg, 1),
             "scored_at": score.created_at.isoformat(),
-            "risk_category": (
-                "bajo" if score.total_score >= 65
-                else "moderado" if score.total_score >= 40
-                else "alto"
-            ),
+            "risk_category": ("bajo" if score.total_score >= 65 else "moderado" if score.total_score >= 40 else "alto"),
         }
 
     return response
@@ -148,9 +138,7 @@ async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
 @router.get("/farmers/{farmer_id}/expediente")
 async def get_farmer_expediente(farmer_id: str, db: AsyncSession = Depends(get_db)):
     """Full expediente: score + satellite + climate + socioeconomic data."""
-    result = await db.execute(
-        select(Farmer).where(Farmer.id == farmer_id)
-    )
+    result = await db.execute(select(Farmer).where(Farmer.id == farmer_id))
     farmer = result.scalar_one_or_none()
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
@@ -168,25 +156,23 @@ async def get_farmer_expediente(farmer_id: str, db: AsyncSession = Depends(get_d
         raise HTTPException(status_code=404, detail="Sin evaluación completada")
 
     # Load all pipeline data for this application
-    score = (await db.execute(
-        select(AgriScoreResult).where(AgriScoreResult.application_id == application.id)
-    )).scalar_one_or_none()
+    score = (
+        await db.execute(select(AgriScoreResult).where(AgriScoreResult.application_id == application.id))
+    ).scalar_one_or_none()
 
-    sat = (await db.execute(
-        select(SatelliteData).where(SatelliteData.application_id == application.id)
-    )).scalar_one_or_none()
+    sat = (
+        await db.execute(select(SatelliteData).where(SatelliteData.application_id == application.id))
+    ).scalar_one_or_none()
 
-    clim = (await db.execute(
-        select(ClimateData).where(ClimateData.application_id == application.id)
-    )).scalar_one_or_none()
+    clim = (
+        await db.execute(select(ClimateData).where(ClimateData.application_id == application.id))
+    ).scalar_one_or_none()
 
-    socio = (await db.execute(
-        select(SocioeconomicData).where(SocioeconomicData.application_id == application.id)
-    )).scalar_one_or_none()
+    socio = (
+        await db.execute(select(SocioeconomicData).where(SocioeconomicData.application_id == application.id))
+    ).scalar_one_or_none()
 
-    parcela = (await db.execute(
-        select(Parcela).where(Parcela.id == application.parcela_id)
-    )).scalar_one_or_none()
+    parcela = (await db.execute(select(Parcela).where(Parcela.id == application.parcela_id))).scalar_one_or_none()
 
     return {
         "farmer": {
@@ -207,24 +193,32 @@ async def get_farmer_expediente(farmer_id: str, db: AsyncSession = Depends(get_d
             "sub_behavioral": round(score.sub_behavioral, 1),
             "sub_esg": round(score.sub_esg, 1),
             "scored_at": score.created_at.isoformat(),
-        } if score else None,
+        }
+        if score
+        else None,
         "satellite": {
             "ndvi_mean": sat.ndvi_mean,
             "fetched_at": sat.fetched_at.isoformat(),
             "raw": sat.raw_data,
-        } if sat else None,
+        }
+        if sat
+        else None,
         "climate": {
             "avg_temperature": clim.avg_temperature,
             "total_precipitation": clim.total_precipitation,
             "et0": clim.et0,
             "soil_moisture": clim.soil_moisture,
             "fetched_at": clim.fetched_at.isoformat(),
-        } if clim else None,
+        }
+        if clim
+        else None,
         "socioeconomic": {
             "population": socio.population,
             "agri_establishments": socio.agri_establishments,
             "fetched_at": socio.fetched_at.isoformat(),
-        } if socio else None,
+        }
+        if socio
+        else None,
         "application": {
             "id": str(application.id),
             "status": application.status.value,
@@ -248,9 +242,7 @@ async def get_farmer_satellite(
     if not farmer:
         raise HTTPException(status_code=404, detail="Agricultor no encontrado")
 
-    parcela = (await db.execute(
-        select(Parcela).where(Parcela.farmer_id == farmer.id)
-    )).scalar_one_or_none()
+    parcela = (await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))).scalar_one_or_none()
     if not parcela or not parcela.latitude:
         raise HTTPException(status_code=404, detail="Sin ubicación de parcela")
 
@@ -266,24 +258,27 @@ async def get_farmer_satellite(
 async def get_stats(db: AsyncSession = Depends(get_db)):
     """Aggregate statistics for bank dashboard."""
     # Total farmers
-    total_farmers = (await db.execute(
-        select(func.count(Farmer.id))
-    )).scalar() or 0
+    total_farmers = (await db.execute(select(func.count(Farmer.id)))).scalar() or 0
 
     # Farmers with completed scores
-    scored_farmers = (await db.execute(
-        select(func.count(func.distinct(Application.farmer_id)))
-        .where(Application.status == ApplicationStatus.completed)
-    )).scalar() or 0
+    scored_farmers = (
+        await db.execute(
+            select(func.count(func.distinct(Application.farmer_id))).where(
+                Application.status == ApplicationStatus.completed
+            )
+        )
+    ).scalar() or 0
 
     # Score stats
-    score_stats = (await db.execute(
-        select(
-            func.avg(AgriScoreResult.total_score),
-            func.min(AgriScoreResult.total_score),
-            func.max(AgriScoreResult.total_score),
+    score_stats = (
+        await db.execute(
+            select(
+                func.avg(AgriScoreResult.total_score),
+                func.min(AgriScoreResult.total_score),
+                func.max(AgriScoreResult.total_score),
+            )
         )
-    )).first()
+    ).first()
 
     avg_score = round(score_stats[0], 1) if score_stats[0] else 0
     min_score = round(score_stats[1], 1) if score_stats[1] else 0
@@ -301,11 +296,13 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
             risk_dist["alto"] += 1
 
     # Crop distribution
-    crops = (await db.execute(
-        select(Parcela.crop_type, func.count(Parcela.id))
-        .where(Parcela.crop_type.isnot(None))
-        .group_by(Parcela.crop_type)
-    )).all()
+    crops = (
+        await db.execute(
+            select(Parcela.crop_type, func.count(Parcela.id))
+            .where(Parcela.crop_type.isnot(None))
+            .group_by(Parcela.crop_type)
+        )
+    ).all()
 
     return {
         "total_farmers": total_farmers,

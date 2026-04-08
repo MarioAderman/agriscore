@@ -17,8 +17,7 @@ Examples:
 
 import argparse
 import asyncio
-import json
-import sys
+
 import httpx
 
 BASE_URL = "http://localhost:8000"

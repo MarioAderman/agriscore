@@ -8,8 +8,8 @@ import csv
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.model_selection import train_test_split
 
 INPUT = "ml/training_data.csv"
 OUTPUT = "ml/model.pkl"
@@ -41,9 +41,7 @@ def main():
     print(f"Dataset: {len(rows)} samples, {len(FEATURE_COLUMNS)} features")
 
     # Split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     # Train
     model = RandomForestRegressor(
@@ -64,14 +62,13 @@ def main():
 
     # Feature importance
     print("\nFeature importance:")
-    for name, imp in sorted(
-        zip(FEATURE_COLUMNS, model.feature_importances_), key=lambda x: -x[1]
-    ):
+    for name, imp in sorted(zip(FEATURE_COLUMNS, model.feature_importances_), key=lambda x: -x[1]):
         print(f"  {name:.<30} {imp:.4f}")
 
     # Save
     joblib.dump(model, OUTPUT)
     import os
+
     size_kb = os.path.getsize(OUTPUT) / 1024
     print(f"\nModel saved to {OUTPUT} ({size_kb:.0f} KB)")
 
