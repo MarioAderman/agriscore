@@ -72,8 +72,18 @@ if [[ "${1:-}" == "teardown" ]]; then
     fi
   done
 
-  echo "Deleting Lambda function..."
-  aws lambda delete-function --function-name ${PROJECT}-pipeline-proxy --region $REGION 2>/dev/null || true
+  echo "Deleting Lambda functions..."
+  for fname in extract-docs fetch-satellite fetch-climate fetch-socioeconomic calculate-score generate-expediente pipeline-proxy; do
+    aws lambda delete-function --function-name ${PROJECT}-${fname} --region $REGION 2>/dev/null || true
+  done
+
+  echo "Deleting Lambda layers..."
+  for layer in ${PROJECT}-common-deps ${PROJECT}-science-deps; do
+    VERSIONS=$(aws lambda list-layer-versions --layer-name $layer --query 'LayerVersions[*].Version' --output text --region $REGION 2>/dev/null || echo "")
+    for v in $VERSIONS; do
+      aws lambda delete-layer-version --layer-name $layer --version-number $v --region $REGION 2>/dev/null || true
+    done
+  done
 
   echo "Deleting Step Functions state machine..."
   SFN_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='${PROJECT}-pipeline'].stateMachineArn | [0]" --output text --region $REGION 2>/dev/null || echo "")
@@ -331,10 +341,10 @@ aws ecs describe-services --cluster $CLUSTER --services $EVOLUTION_SERVICE --que
     --region $REGION > /dev/null
 log "ECS service: $EVOLUTION_SERVICE"
 
-# ── Step 8: Lambda + Step Functions ─────────────────────────────────────────
+# ── Step 8: Lambda Layers + Pipeline Functions + Step Functions ────────────
 echo ""
 echo "═══════════════════════════════════════════════════"
-echo "  Step 8: Lambda + Step Functions"
+echo "  Step 8: Lambda Layers + Pipeline Functions"
 echo "═══════════════════════════════════════════════════"
 
 # Lambda execution role
@@ -345,6 +355,9 @@ if ! aws iam get-role --role-name ${PROJECT}-lambda-role 2>/dev/null; then
     --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   aws iam attach-role-policy --role-name ${PROJECT}-lambda-role \
     --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+  # Lambda also needs S3 read access (for ML model download)
+  aws iam put-role-policy --role-name ${PROJECT}-lambda-role --policy-name s3-read \
+    --policy-document "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\"],\"Resource\":\"arn:aws:s3:::${S3_BUCKET}/*\"}]}"
   sleep 10  # Wait for role propagation
   log "Created Lambda execution role"
 else
@@ -352,38 +365,123 @@ else
 fi
 LAMBDA_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${PROJECT}-lambda-role"
 
-# Package and deploy Lambda
-cd infra/lambda && zip -j /tmp/pipeline_proxy.zip pipeline_proxy.py && cd ../..
-
-LAMBDA_ARN=$(aws lambda get-function --function-name ${PROJECT}-pipeline-proxy --query 'Configuration.FunctionArn' --output text --region $REGION 2>/dev/null || echo "None")
-if [[ "$LAMBDA_ARN" == "None" || -z "$LAMBDA_ARN" ]]; then
-  LAMBDA_ARN=$(aws lambda create-function --function-name ${PROJECT}-pipeline-proxy \
-    --runtime python3.12 --handler pipeline_proxy.handler \
-    --role $LAMBDA_ROLE_ARN --zip-file fileb:///tmp/pipeline_proxy.zip \
-    --timeout 120 --memory-size 128 \
-    --environment "Variables={FASTAPI_BASE_URL=http://${ALB_DNS}}" \
-    --query 'FunctionArn' --output text --region $REGION)
-else
-  aws lambda update-function-code --function-name ${PROJECT}-pipeline-proxy \
-    --zip-file fileb:///tmp/pipeline_proxy.zip --region $REGION > /dev/null
-  aws lambda update-function-configuration --function-name ${PROJECT}-pipeline-proxy \
-    --environment "Variables={FASTAPI_BASE_URL=http://${ALB_DNS}}" --region $REGION > /dev/null
+# Load env vars from .env for Lambda configuration
+if [[ -f .env ]]; then
+  export $(grep -v '^#' .env | grep -v '^\s*$' | xargs)
 fi
-log "Lambda: ${PROJECT}-pipeline-proxy → $LAMBDA_ARN"
 
-# Step Functions
+# Shared env vars for all Lambdas (Settings uses extra="ignore")
+LAMBDA_ENV_VARS="DATABASE_URL=${DATABASE_URL:-},ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-},SENTINEL_HUB_ID=${SENTINEL_HUB_ID:-},SENTINEL_HUB_SECRET=${SENTINEL_HUB_SECRET:-},INEGI_TOKEN=${INEGI_TOKEN:-},GROQ_API_KEY=${GROQ_API_KEY:-},OPENAI_API_KEY=${OPENAI_API_KEY:-},S3_BUCKET=${S3_BUCKET},EVOLUTIONAPI_URL=${EVOLUTIONAPI_URL:-http://localhost:8080},EVOLUTIONAPI_AUTHENTICATION_API_KEY=${EVOLUTIONAPI_AUTHENTICATION_API_KEY:-},EVOLUTION_INSTANCE_NAME=${EVOLUTION_INSTANCE_NAME:-Fintegra solutions}"
+
+# Package Lambda functions
+log "Packaging Lambda functions..."
+bash scripts/package_lambda.sh all
+
+# ── Lambda Layers ──
+
+# Common deps layer
+COMMON_LAYER_ARN=$(aws lambda publish-layer-version \
+  --layer-name ${PROJECT}-common-deps \
+  --compatible-runtimes python3.12 \
+  --zip-file fileb:///tmp/lambda-layers/common-deps.zip \
+  --query 'LayerVersionArn' --output text --region $REGION)
+log "Layer: common-deps → $COMMON_LAYER_ARN"
+
+# Science deps layer
+SCIENCE_LAYER_ARN=$(aws lambda publish-layer-version \
+  --layer-name ${PROJECT}-science-deps \
+  --compatible-runtimes python3.12 \
+  --zip-file fileb:///tmp/lambda-layers/science-deps.zip \
+  --query 'LayerVersionArn' --output text --region $REGION)
+log "Layer: science-deps → $SCIENCE_LAYER_ARN"
+
+# ── Deploy 6 Lambda Functions ──
+
+# Handler config: name:memory:timeout:layers
+LAMBDA_CONFIGS=(
+  "extract-docs:extract_docs:256:60:common"
+  "fetch-satellite:fetch_satellite:512:90:both"
+  "fetch-climate:fetch_climate:256:60:common"
+  "fetch-socioeconomic:fetch_socioeconomic:256:60:common"
+  "calculate-score:calculate_score:512:30:both"
+  "generate-expediente:generate_expediente:256:60:common"
+)
+
+declare -A LAMBDA_ARNS
+
+for config in "${LAMBDA_CONFIGS[@]}"; do
+  IFS=':' read -r fname handler_file memory timeout layer_type <<< "$config"
+  func_name="${PROJECT}-${fname}"
+
+  # Determine layers
+  if [[ "$layer_type" == "both" ]]; then
+    LAYERS="${COMMON_LAYER_ARN},${SCIENCE_LAYER_ARN}"
+  else
+    LAYERS="${COMMON_LAYER_ARN}"
+  fi
+
+  EXISTING_ARN=$(aws lambda get-function --function-name $func_name --query 'Configuration.FunctionArn' --output text --region $REGION 2>/dev/null || echo "None")
+
+  if [[ "$EXISTING_ARN" == "None" || -z "$EXISTING_ARN" ]]; then
+    FUNC_ARN=$(aws lambda create-function --function-name $func_name \
+      --runtime python3.12 --handler handler.handler \
+      --role $LAMBDA_ROLE_ARN \
+      --zip-file fileb:///tmp/lambda-packages/${handler_file}.zip \
+      --timeout $timeout --memory-size $memory \
+      --layers $LAYERS \
+      --environment "Variables={${LAMBDA_ENV_VARS}}" \
+      --query 'FunctionArn' --output text --region $REGION)
+  else
+    aws lambda update-function-code --function-name $func_name \
+      --zip-file fileb:///tmp/lambda-packages/${handler_file}.zip --region $REGION > /dev/null
+    # Wait for code update before changing config
+    aws lambda wait function-updated --function-name $func_name --region $REGION 2>/dev/null || sleep 5
+    aws lambda update-function-configuration --function-name $func_name \
+      --layers $LAYERS \
+      --timeout $timeout --memory-size $memory \
+      --environment "Variables={${LAMBDA_ENV_VARS}}" --region $REGION > /dev/null
+    FUNC_ARN="$EXISTING_ARN"
+  fi
+
+  LAMBDA_ARNS[$fname]="$FUNC_ARN"
+  log "Lambda: $func_name → $FUNC_ARN"
+done
+
+# ── Step Functions ──
+
+echo ""
+echo "═══════════════════════════════════════════════════"
+echo "  Step Functions State Machine"
+echo "═══════════════════════════════════════════════════"
+
 SFN_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${PROJECT}-sfn-role"
+
+# Build resource ARN list for IAM policy
+ALL_LAMBDA_ARNS=""
+for arn in "${LAMBDA_ARNS[@]}"; do
+  ALL_LAMBDA_ARNS="${ALL_LAMBDA_ARNS}\"${arn}\","
+done
+ALL_LAMBDA_ARNS="[${ALL_LAMBDA_ARNS%,}]"
+
 if ! aws iam get-role --role-name ${PROJECT}-sfn-role 2>/dev/null; then
   aws iam create-role --role-name ${PROJECT}-sfn-role \
     --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"states.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
-  aws iam put-role-policy --role-name ${PROJECT}-sfn-role --policy-name invoke-lambda \
-    --policy-document "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"lambda:InvokeFunction\",\"Resource\":\"${LAMBDA_ARN}\"}]}"
   sleep 5
   log "Created Step Functions role"
 fi
+# Update policy to allow invoking all 6 Lambdas
+aws iam put-role-policy --role-name ${PROJECT}-sfn-role --policy-name invoke-lambda \
+  --policy-document "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"lambda:InvokeFunction\",\"Resource\":${ALL_LAMBDA_ARNS}}]}"
+log "Updated Step Functions IAM policy for 6 Lambdas"
 
-# Replace placeholder in state machine definition
-SFN_DEFINITION=$(cat infra/step-functions.json | sed "s|\${LambdaArn}|${LAMBDA_ARN}|g")
+# Replace 6 ARN placeholders in state machine definition
+SFN_DEFINITION=$(cat infra/step-functions.json)
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${ExtractDocsLambdaArn}|${LAMBDA_ARNS[extract-docs]}|g")
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${FetchSatelliteLambdaArn}|${LAMBDA_ARNS[fetch-satellite]}|g")
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${FetchClimateLambdaArn}|${LAMBDA_ARNS[fetch-climate]}|g")
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${FetchSocioeconomicLambdaArn}|${LAMBDA_ARNS[fetch-socioeconomic]}|g")
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${CalculateScoreLambdaArn}|${LAMBDA_ARNS[calculate-score]}|g")
+SFN_DEFINITION=$(echo "$SFN_DEFINITION" | sed "s|\${GenerateExpedienteLambdaArn}|${LAMBDA_ARNS[generate-expediente]}|g")
 
 SFN_ARN=$(aws stepfunctions list-state-machines --query "stateMachines[?name=='${PROJECT}-pipeline'].stateMachineArn | [0]" --output text --region $REGION 2>/dev/null)
 if [[ -z "$SFN_ARN" || "$SFN_ARN" == "None" ]]; then
@@ -403,9 +501,17 @@ echo "  Deploy Complete"
 echo "═══════════════════════════════════════════════════"
 echo ""
 echo "ALB URL:          http://${ALB_DNS}"
-echo "Lambda ARN:       ${LAMBDA_ARN}"
 echo "Step Functions:   ${SFN_ARN}"
 echo "S3 Bucket:        ${S3_BUCKET}"
+echo ""
+echo "Lambda Functions:"
+for fname in "${!LAMBDA_ARNS[@]}"; do
+  echo "  ${fname}: ${LAMBDA_ARNS[$fname]}"
+done
+echo ""
+echo "Lambda Layers:"
+echo "  common-deps: ${COMMON_LAYER_ARN}"
+echo "  science-deps: ${SCIENCE_LAYER_ARN}"
 echo ""
 echo "Next steps:"
 echo "  1. Create RDS instance (if not done):"

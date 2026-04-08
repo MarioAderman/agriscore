@@ -4,9 +4,8 @@
   "States": {
     "ExtractDocs": {
       "Type": "Task",
-      "Resource": "${LambdaArn}",
+      "Resource": "${ExtractDocsLambdaArn}",
       "Parameters": {
-        "step": "extract-docs",
         "application_id.$": "$.application_id"
       },
       "ResultPath": "$.extract_docs",
@@ -38,9 +37,8 @@
           "States": {
             "FetchSatellite": {
               "Type": "Task",
-              "Resource": "${LambdaArn}",
+              "Resource": "${FetchSatelliteLambdaArn}",
               "Parameters": {
-                "step": "fetch-satellite",
                 "application_id.$": "$.application_id"
               },
               "Retry": [
@@ -60,9 +58,8 @@
           "States": {
             "FetchClimate": {
               "Type": "Task",
-              "Resource": "${LambdaArn}",
+              "Resource": "${FetchClimateLambdaArn}",
               "Parameters": {
-                "step": "fetch-climate",
                 "application_id.$": "$.application_id"
               },
               "Retry": [
@@ -82,9 +79,8 @@
           "States": {
             "FetchSocioeconomic": {
               "Type": "Task",
-              "Resource": "${LambdaArn}",
+              "Resource": "${FetchSocioeconomicLambdaArn}",
               "Parameters": {
-                "step": "fetch-socioeconomic",
                 "application_id.$": "$.application_id"
               },
               "Retry": [
@@ -111,9 +107,8 @@
 
     "CalculateScore": {
       "Type": "Task",
-      "Resource": "${LambdaArn}",
+      "Resource": "${CalculateScoreLambdaArn}",
       "Parameters": {
-        "step": "calculate-score",
         "application_id.$": "$.application_id"
       },
       "ResultPath": "$.score",
@@ -137,9 +132,8 @@
 
     "GenerateExpediente": {
       "Type": "Task",
-      "Resource": "${LambdaArn}",
+      "Resource": "${GenerateExpedienteLambdaArn}",
       "Parameters": {
-        "step": "generate-expediente",
         "application_id.$": "$.application_id"
       },
       "ResultPath": "$.expediente",
