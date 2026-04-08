@@ -170,11 +170,11 @@ def run_handler(name, module_path, application_id):
         result = mod.handler(event, None)
 
         print(f"  Result: {json.dumps(result, indent=2, default=str)}")
-        print(f"  Status: PASS")
+        print("  Status: PASS")
         return True
     except Exception as e:
         print(f"  ERROR: {e}")
-        print(f"  Status: FAIL")
+        print("  Status: FAIL")
         return False
 
 

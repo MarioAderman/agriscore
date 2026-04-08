@@ -1,10 +1,13 @@
 """Tool definitions and executors for the AgriScore AI agent."""
 
+import base64
 import logging
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.llm import get_claude_client, get_claude_model
 from app.models.database import (
     AgriScoreResult,
     Application,
@@ -31,6 +34,10 @@ TOOL_DEFINITIONS = [
                 "crop_type": {
                     "type": "string",
                     "description": "Tipo de cultivo principal (ej: maíz, frijol, chile, tomate, sorgo)",
+                },
+                "area_hectares": {
+                    "type": "number",
+                    "description": "Superficie de la parcela en hectáreas",
                 },
             },
             "required": ["name"],
@@ -72,6 +79,24 @@ TOOL_DEFINITIONS = [
             "required": [],
         },
     },
+    {
+        "name": "extract_document",
+        "description": "Extrae datos estructurados de un documento enviado (constancia fiscal, certificado parcelario, INE, etc.) usando visión por computadora. Usar cuando el agricultor envía un documento o foto.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_url": {
+                    "type": "string",
+                    "description": "URL o ruta local del documento a extraer",
+                },
+                "document_type": {
+                    "type": "string",
+                    "description": "Tipo de documento (constancia_fiscal, certificado_parcelario, ine, otro)",
+                },
+            },
+            "required": ["document_url"],
+        },
+    },
 ]
 
 
@@ -94,6 +119,8 @@ async def execute_tool(
             return await _trigger_evaluation(phone, db)
         elif tool_name == "get_agriscore":
             return await _get_agriscore(phone, db)
+        elif tool_name == "extract_document":
+            return await _extract_document(phone, tool_input, db)
         else:
             return f"Error: herramienta desconocida '{tool_name}'"
     except Exception as e:
@@ -119,19 +146,32 @@ async def _save_farmer_profile(phone: str, inputs: dict, db: AsyncSession) -> st
 
     await db.flush()
 
-    # If crop_type provided, update or create the first parcela
+    # If crop_type or area_hectares provided, update or create the first parcela
     crop_type = inputs.get("crop_type")
-    if crop_type:
+    area_hectares = inputs.get("area_hectares")
+    if crop_type or area_hectares:
         result = await db.execute(select(Parcela).where(Parcela.farmer_id == farmer.id))
         parcela = result.scalar_one_or_none()
         if parcela:
-            parcela.crop_type = crop_type
+            if crop_type:
+                parcela.crop_type = crop_type
+            if area_hectares:
+                parcela.area_hectares = area_hectares
         else:
-            parcela = Parcela(farmer_id=farmer.id, crop_type=crop_type)
+            parcela = Parcela(
+                farmer_id=farmer.id,
+                crop_type=crop_type,
+                area_hectares=area_hectares,
+            )
             db.add(parcela)
 
     await db.commit()
-    return f"Perfil guardado: {farmer.name}, cultivo: {crop_type or 'no especificado'}"
+    parts = [f"Perfil guardado: {farmer.name}"]
+    if crop_type:
+        parts.append(f"cultivo: {crop_type}")
+    if area_hectares:
+        parts.append(f"área: {area_hectares} ha")
+    return ", ".join(parts)
 
 
 async def _save_location(phone: str, inputs: dict, db: AsyncSession) -> str:
@@ -228,3 +268,81 @@ async def _get_agriscore(phone: str, db: AsyncSession) -> str:
         f"- ESG: {score.sub_esg:.0f}/100\n"
         f"Fecha: {score.created_at.strftime('%d/%m/%Y')}"
     )
+
+
+async def _extract_document(phone: str, inputs: dict, db: AsyncSession) -> str:
+    """Extract structured data from a document using Claude Vision."""
+    doc_url = inputs["document_url"]
+    doc_type = inputs.get("document_type", "desconocido")
+
+    # Read file bytes
+    path = Path(doc_url)
+    if path.exists():
+        file_bytes = path.read_bytes()
+        if path.suffix.lower() == ".pdf":
+            media_type = "application/pdf"
+        elif path.suffix.lower() in (".jpg", ".jpeg"):
+            media_type = "image/jpeg"
+        elif path.suffix.lower() == ".png":
+            media_type = "image/png"
+        else:
+            media_type = "application/pdf"
+    else:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.get(doc_url)
+            resp.raise_for_status()
+            file_bytes = resp.content
+            media_type = resp.headers.get("content-type", "application/pdf").split(";")[0]
+
+    b64_data = base64.b64encode(file_bytes).decode()
+
+    # Build content block based on media type
+    if media_type == "application/pdf":
+        source_block = {
+            "type": "document",
+            "source": {"type": "base64", "media_type": "application/pdf", "data": b64_data},
+        }
+    else:
+        source_block = {
+            "type": "image",
+            "source": {"type": "base64", "media_type": media_type, "data": b64_data},
+        }
+
+    extraction_prompt = (
+        f"Extrae todos los datos relevantes de este documento ({doc_type}). "
+        "Responde SOLO con un JSON válido con los campos que encuentres:\n"
+        '- "nombre": nombre completo de la persona\n'
+        '- "rfc": RFC (si aparece)\n'
+        '- "curp": CURP (si aparece)\n'
+        '- "domicilio": dirección completa\n'
+        '- "estado": estado de México\n'
+        '- "municipio": municipio\n'
+        '- "cultivos": lista de cultivos mencionados con porcentajes si los hay\n'
+        '- "area_hectareas": superficie en hectáreas\n'
+        '- "latitud": latitud (si aparece coordenadas GPS)\n'
+        '- "longitud": longitud (si aparece coordenadas GPS)\n'
+        '- "numero_parcela": número de parcela\n'
+        '- "ejido": nombre del ejido\n'
+        '- "tipo_documento": tipo de documento identificado\n'
+        "Omite campos que no encuentres. Solo el JSON, sin markdown ni explicaciones."
+    )
+
+    try:
+        response = await get_claude_client().messages.create(
+            model=get_claude_model(),
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [source_block, {"type": "text", "text": extraction_prompt}],
+                }
+            ],
+        )
+        extracted = response.content[0].text
+        logger.info("Document extracted for %s: %s", phone, extracted[:200])
+        return f"Datos extraídos del documento:\n{extracted}"
+    except Exception as e:
+        logger.exception("Document extraction failed for %s", phone)
+        return f"Error al extraer datos del documento: {e}"

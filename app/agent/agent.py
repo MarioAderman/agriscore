@@ -1,46 +1,29 @@
-"""AgriScore AI agent — supports Anthropic and OpenAI providers.
+"""AgriScore AI agent — supports Claude (Bedrock/API) and OpenAI-compatible providers.
 
-Provider is selected via LLM_PROVIDER env var ("anthropic" or "openai").
+Provider is selected via LLM_PROVIDER env var:
+  bedrock   → Claude via AWS Bedrock (default, IAM auth)
+  anthropic → Claude via direct API
+  openai    → OpenAI
+  groq      → Groq (Llama, OpenAI-compatible)
+
 Model is selected via LLM_MODEL env var, or uses the provider default.
-
-Defaults:
-  anthropic → claude-sonnet-4-6
-  openai    → gpt-4o
 """
 
 import json
 import logging
 
-import anthropic
-import openai
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.prompts import SYSTEM_PROMPT
 from app.agent.tools import TOOL_DEFINITIONS, execute_tool
 from app.config import settings
+from app.llm import active_model, get_claude_client, get_groq_client, get_openai_client
 from app.models.database import Conversation, Farmer, MessageRole, MessageType
 
 logger = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 5
-
-_DEFAULT_MODELS = {
-    "anthropic": "claude-sonnet-4-6",
-    "openai": "gpt-4o",
-    "groq": "meta-llama/llama-4-scout-17b-16e-instruct",
-}
-
-_anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
-_openai_client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
-_groq_client = openai.AsyncOpenAI(
-    api_key=settings.groq_api_key,
-    base_url="https://api.groq.com/openai/v1",
-)
-
-
-def _active_model() -> str:
-    return settings.llm_model or _DEFAULT_MODELS.get(settings.llm_provider, "claude-sonnet-4-6")
 
 
 def _openai_tools() -> list[dict]:
@@ -64,14 +47,19 @@ async def _run_anthropic_loop(
     phone: str,
     db: AsyncSession,
 ) -> str:
-    """Anthropic agent loop. history is plain [{role, content}] text messages."""
+    """Anthropic agent loop (works for both Bedrock and direct API).
+
+    history is plain [{role, content}] text messages.
+    """
+    client = get_claude_client()
+    model = active_model()
     messages = list(history) + [{"role": "user", "content": user_text}]
 
     for round_num in range(MAX_TOOL_ROUNDS):
-        logger.info("Anthropic agent round %d for %s", round_num + 1, phone)
+        logger.info("Claude agent round %d for %s (model=%s)", round_num + 1, phone, model)
 
-        response = await _anthropic_client.messages.create(
-            model=_active_model(),
+        response = await client.messages.create(
+            model=model,
             max_tokens=1024,
             system=SYSTEM_PROMPT,
             tools=TOOL_DEFINITIONS,
@@ -111,22 +99,23 @@ async def _run_openai_loop(
     user_text: str,
     phone: str,
     db: AsyncSession,
-    client: openai.AsyncOpenAI = None,
+    client=None,
 ) -> str:
     """OpenAI-compatible agent loop (works for OpenAI and Groq).
 
     history is plain [{role, content}] text messages.
     """
     if client is None:
-        client = _openai_client
+        client = get_openai_client()
+    model = active_model()
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + list(history) + [{"role": "user", "content": user_text}]
     tools = _openai_tools()
 
     for round_num in range(MAX_TOOL_ROUNDS):
-        logger.info("OpenAI-compat agent round %d for %s", round_num + 1, phone)
+        logger.info("OpenAI-compat agent round %d for %s (model=%s)", round_num + 1, phone, model)
 
         response = await client.chat.completions.create(
-            model=_active_model(),
+            model=model,
             messages=messages,
             tools=tools,
             tool_choice="auto",
@@ -195,13 +184,14 @@ async def run_agent(
 
     # Dispatch to provider loop
     provider = settings.llm_provider
-    logger.info("Running agent with provider=%s model=%s", provider, _active_model())
+    logger.info("Running agent with provider=%s model=%s", provider, active_model())
 
-    if provider == "groq":
-        final_text = await _run_openai_loop(history, user_text, phone, db, client=_groq_client)
+    if provider in ("groq",):
+        final_text = await _run_openai_loop(history, user_text, phone, db, client=get_groq_client())
     elif provider == "openai":
-        final_text = await _run_openai_loop(history, user_text, phone, db, client=_openai_client)
+        final_text = await _run_openai_loop(history, user_text, phone, db, client=get_openai_client())
     else:
+        # "bedrock" and "anthropic" both use the Anthropic SDK
         final_text = await _run_anthropic_loop(history, user_text, phone, db)
 
     # Save assistant response

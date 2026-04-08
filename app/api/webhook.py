@@ -22,12 +22,12 @@ async def _process_message(msg: IncomingMessage):
             elif msg.message_type == "location":
                 user_text = f"[Ubicación compartida: lat={msg.latitude}, lon={msg.longitude}]"
             elif msg.message_type == "image":
-                user_text = f"[Foto enviada]{': ' + msg.text if msg.text else ''}"
+                user_text = f"[Foto enviada. URL: {msg.image_url}]{': ' + msg.text if msg.text else ''}"
             elif msg.message_type == "audio":
                 # TODO: Whisper STT transcription
                 user_text = "[Nota de voz recibida — transcripción pendiente]"
             elif msg.message_type == "document":
-                user_text = f"[Documento enviado: {msg.text or 'sin nombre'}]"
+                user_text = f"[Documento enviado: {msg.text or 'sin nombre'}. URL: {msg.document_url}]"
             else:
                 user_text = f"[Mensaje tipo {msg.message_type}]"
 

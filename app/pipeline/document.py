@@ -2,13 +2,9 @@
 
 import logging
 
-import anthropic
-
-from app.config import settings
+from app.llm import get_claude_client, get_claude_model
 
 logger = logging.getLogger(__name__)
-
-client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
 
 async def extract_and_validate(
@@ -51,8 +47,8 @@ async def extract_and_validate(
     )
 
     try:
-        response = await client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+        response = await get_claude_client().messages.create(
+            model=get_claude_model(),
             max_tokens=512,
             messages=[{"role": "user", "content": prompt}],
         )

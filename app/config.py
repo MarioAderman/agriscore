@@ -6,9 +6,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://agriscore:agriscore@localhost:5432/agriscore"
 
     # LLM provider selection
-    # Set LLM_PROVIDER=openai to use OpenAI instead of Anthropic
-    # Set LLM_MODEL to override the default model for the chosen provider
-    llm_provider: str = "groq"  # "anthropic" | "openai"
+    # "bedrock" = Claude via AWS Bedrock (IAM auth, no API key needed on AWS)
+    # "anthropic" = Claude via direct API (needs ANTHROPIC_API_KEY)
+    # "openai" / "groq" = OpenAI-compatible providers
+    llm_provider: str = "bedrock"  # "bedrock" | "anthropic" | "openai" | "groq"
     llm_model: str = ""  # empty = use provider default
 
     # Anthropic
