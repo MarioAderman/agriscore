@@ -1,0 +1,174 @@
+{
+  "Comment": "AgriScore evaluation pipeline — 5 steps with parallel data fetching",
+  "StartAt": "ExtractDocs",
+  "States": {
+    "ExtractDocs": {
+      "Type": "Task",
+      "Resource": "${LambdaArn}",
+      "Parameters": {
+        "step": "extract-docs",
+        "application_id.$": "$.application_id"
+      },
+      "ResultPath": "$.extract_docs",
+      "Next": "ParallelFetch",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailed"
+        }
+      ]
+    },
+
+    "ParallelFetch": {
+      "Type": "Parallel",
+      "ResultPath": "$.parallel_results",
+      "Next": "CalculateScore",
+      "Branches": [
+        {
+          "StartAt": "FetchSatellite",
+          "States": {
+            "FetchSatellite": {
+              "Type": "Task",
+              "Resource": "${LambdaArn}",
+              "Parameters": {
+                "step": "fetch-satellite",
+                "application_id.$": "$.application_id"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "FetchClimate",
+          "States": {
+            "FetchClimate": {
+              "Type": "Task",
+              "Resource": "${LambdaArn}",
+              "Parameters": {
+                "step": "fetch-climate",
+                "application_id.$": "$.application_id"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "FetchSocioeconomic",
+          "States": {
+            "FetchSocioeconomic": {
+              "Type": "Task",
+              "Resource": "${LambdaArn}",
+              "Parameters": {
+                "step": "fetch-socioeconomic",
+                "application_id.$": "$.application_id"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": ["States.TaskFailed"],
+                  "IntervalSeconds": 5,
+                  "MaxAttempts": 2,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailed"
+        }
+      ]
+    },
+
+    "CalculateScore": {
+      "Type": "Task",
+      "Resource": "${LambdaArn}",
+      "Parameters": {
+        "step": "calculate-score",
+        "application_id.$": "$.application_id"
+      },
+      "ResultPath": "$.score",
+      "Next": "GenerateExpediente",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailed"
+        }
+      ]
+    },
+
+    "GenerateExpediente": {
+      "Type": "Task",
+      "Resource": "${LambdaArn}",
+      "Parameters": {
+        "step": "generate-expediente",
+        "application_id.$": "$.application_id"
+      },
+      "ResultPath": "$.expediente",
+      "Next": "PipelineSucceeded",
+      "Retry": [
+        {
+          "ErrorEquals": ["States.TaskFailed"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 1,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "PipelineFailed"
+        }
+      ]
+    },
+
+    "PipelineSucceeded": {
+      "Type": "Succeed"
+    },
+
+    "PipelineFailed": {
+      "Type": "Fail",
+      "Error": "PipelineError",
+      "Cause": "One or more pipeline steps failed. Check CloudWatch logs for details."
+    }
+  }
+}

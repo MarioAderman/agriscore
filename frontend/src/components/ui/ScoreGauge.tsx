@@ -14,11 +14,9 @@ export default function ScoreGauge({
   delta = 10,
   size = 260,
 }: ScoreGaugeProps) {
-  const [mounted, setMounted] = useState(false);
   const [animated, setAnimated] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const t = setTimeout(() => setAnimated(true), 200);
     return () => clearTimeout(t);
   }, []);
@@ -54,11 +52,6 @@ export default function ScoreGauge({
       filled: i / (totalTicks - 1) <= progress,
     };
   });
-
-  // Render a placeholder on server, real gauge on client
-  if (!mounted) {
-    return <div style={{ width: size, height: size }} />;
-  }
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
