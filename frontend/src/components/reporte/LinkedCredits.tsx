@@ -7,7 +7,7 @@ import { ChevronRight, ChevronDown, Eye, Phone } from "lucide-react";
 interface Credit {
   id: string;
   name: string;
-  bank: string;
+  customer: string;
   amount: string;
   nextPayment: string;
   nextPaymentDate: string;
@@ -19,7 +19,7 @@ const credits: Credit[] = [
   {
     id: "1",
     name: "Crédito Agrícola 1",
-    bank: "Nombre del Banco 1",
+    customer: "Nombre del Banco 1",
     amount: "$1,000,000",
     nextPayment: "$15,000",
     nextPaymentDate: "01 de Abril 2026",
@@ -29,7 +29,7 @@ const credits: Credit[] = [
   {
     id: "2",
     name: "Crédito Agrícola 2",
-    bank: "Nombre del Banco 2",
+    customer: "Nombre del Banco 2",
     amount: "$500,000",
     nextPayment: "$8,000",
     nextPaymentDate: "15 de Abril 2026",
@@ -66,7 +66,7 @@ export default function LinkedCredits() {
                 <p className="text-white text-sm font-semibold">
                   {credit.name}
                 </p>
-                <p className="text-text-label text-xs">{credit.bank}</p>
+                <p className="text-text-label text-xs">{credit.customer}</p>
               </div>
               {isOpen ? (
                 <ChevronDown size={18} className="text-text-muted" />

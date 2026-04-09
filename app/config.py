@@ -38,10 +38,17 @@ class Settings(BaseSettings):
     s3_bucket: str = "agriscore-data"
     step_functions_arn: str = ""
 
+    # Cognito
+    cognito_user_pool_id: str = ""
+    cognito_app_client_id: str = ""
+
+    # SageMaker
+    sagemaker_endpoint: str = ""
+
     # App
     environment: str = "development"
     log_level: str = "INFO"
-    bank_api_key: str = "demo-bank-key"
+    customer_api_key: str = "demo-customer-key"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

@@ -1,11 +1,11 @@
-"""Bank API — endpoints consumed by financial institutions to view farmer profiles and scores."""
+"""Customer API — endpoints consumed by financial institutions to view farmer profiles and scores."""
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, verify_bank_api_key
+from app.dependencies import get_db, verify_customer_api_key
 from app.models.database import (
     AgriScoreResult,
     Application,
@@ -19,7 +19,7 @@ from app.models.database import (
     SocioeconomicData,
 )
 
-router = APIRouter(dependencies=[Depends(verify_bank_api_key)])
+router = APIRouter(dependencies=[Depends(verify_customer_api_key)])
 
 
 @router.get("/farmers")
@@ -129,7 +129,7 @@ async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
             "sub_behavioral": round(score.sub_behavioral, 1),
             "sub_esg": round(score.sub_esg, 1),
             "scored_at": score.created_at.isoformat(),
-            "risk_category": ("bajo" if score.total_score >= 65 else "moderado" if score.total_score >= 40 else "alto"),
+            "risk_category": ("bajo" if score.total_score >= 658 else "moderado" if score.total_score >= 520 else "alto"),
         }
 
     return response
@@ -256,7 +256,7 @@ async def get_farmer_satellite(
 
 @router.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """Aggregate statistics for bank dashboard."""
+    """Aggregate statistics for customer dashboard."""
     # Total farmers
     total_farmers = (await db.execute(select(func.count(Farmer.id)))).scalar() or 0
 
@@ -288,9 +288,9 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     risk_dist = {"bajo": 0, "moderado": 0, "alto": 0}
     scores = (await db.execute(select(AgriScoreResult.total_score))).scalars().all()
     for s in scores:
-        if s >= 65:
+        if s >= 658:
             risk_dist["bajo"] += 1
-        elif s >= 40:
+        elif s >= 520:
             risk_dist["moderado"] += 1
         else:
             risk_dist["alto"] += 1

@@ -71,7 +71,7 @@ class ApplicationResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# --- Bank ---
+# --- Customer ---
 
 
 class FarmerSummary(BaseModel):
@@ -83,7 +83,7 @@ class FarmerSummary(BaseModel):
     last_updated: datetime | None = None
 
 
-class BankStats(BaseModel):
+class CustomerStats(BaseModel):
     total_farmers: int
     avg_score: float | None
     active_applications: int
