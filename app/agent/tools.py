@@ -123,9 +123,9 @@ async def execute_tool(
             return await _extract_document(phone, tool_input, db)
         else:
             return f"Error: herramienta desconocida '{tool_name}'"
-    except Exception as e:
+    except Exception:
         logger.exception("Tool execution error: %s", tool_name)
-        return f"Error ejecutando {tool_name}: {str(e)}"
+        return f"Error ejecutando {tool_name}. Intenta de nuevo."
 
 
 async def _save_farmer_profile(phone: str, inputs: dict, db: AsyncSession) -> str:

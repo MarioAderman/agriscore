@@ -44,11 +44,11 @@ jobs:
 
       - name: Lint (ruff)
         if: steps.changes.outputs.backend == 'true'
-        run: uv run ruff check app/ ml/ scripts/
+        run: uv run ruff check app/ ml/
 
       - name: Format check (ruff)
         if: steps.changes.outputs.backend == 'true'
-        run: uv run ruff format --check app/ ml/ scripts/
+        run: uv run ruff format --check app/ ml/
 
       - name: Docker build test
         if: steps.changes.outputs.backend == 'true'

@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import AsyncGenerator
 
 from fastapi import HTTPException, Security
@@ -18,6 +19,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def verify_customer_api_key(
     api_key: str | None = Security(api_key_header),
 ) -> str:
-    if not api_key or api_key != settings.customer_api_key:
+    if not api_key or not secrets.compare_digest(api_key, settings.customer_api_key):
         raise HTTPException(status_code=403, detail="Invalid API key")
     return api_key

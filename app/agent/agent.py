@@ -53,7 +53,9 @@ async def _run_anthropic_loop(
     """
     client = get_claude_client()
     model = active_model()
-    messages = list(history) + [{"role": "user", "content": user_text}]
+    # XML-tag user content for prompt injection mitigation
+    tagged_text = f"<user_message>{user_text}</user_message>"
+    messages = list(history) + [{"role": "user", "content": tagged_text}]
 
     for round_num in range(MAX_TOOL_ROUNDS):
         logger.info("Claude agent round %d for %s (model=%s)", round_num + 1, phone, model)
@@ -108,7 +110,10 @@ async def _run_openai_loop(
     if client is None:
         client = get_openai_client()
     model = active_model()
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + list(history) + [{"role": "user", "content": user_text}]
+    tagged_text = f"<user_message>{user_text}</user_message>"
+    messages = (
+        [{"role": "system", "content": SYSTEM_PROMPT}] + list(history) + [{"role": "user", "content": tagged_text}]
+    )
     tools = _openai_tools()
 
     for round_num in range(MAX_TOOL_ROUNDS):

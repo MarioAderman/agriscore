@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     log_level: str = "INFO"
     customer_api_key: str = "demo-customer-key"
+    # CORS: comma-separated allowed origins (use "*" only in development)
+    allowed_origins: str = "*"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

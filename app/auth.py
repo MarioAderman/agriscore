@@ -58,6 +58,8 @@ async def verify_cognito_token(
     Skips validation if Cognito is not configured (development mode).
     """
     if not settings.cognito_user_pool_id:
+        if settings.environment == "production":
+            raise HTTPException(status_code=500, detail="Cognito no configurado")
         return {"sub": "dev-user", "email": "dev@agriscore.local"}
 
     if not credentials:
