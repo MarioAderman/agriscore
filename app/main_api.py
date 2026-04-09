@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import webhook
+from app.api import customer, farmer
 from app.config import settings
 from app.db.connection import engine
 from app.models.database import Base
@@ -14,25 +14,22 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logging.basicConfig(level=settings.log_level)
-    logger.info("Starting AgriScore Core")
+    logger.info("Starting AgriScore API REST")
 
-    # Create tables if they don't exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database tables ready")
 
     yield
 
-    # Shutdown
     await engine.dispose()
-    logger.info("AgriScore Core shut down")
+    logger.info("AgriScore API REST shut down")
 
 
 app = FastAPI(
-    title="AgriScore Core",
-    description="Agente IA + pipeline de evaluación agrícola",
+    title="AgriScore API REST",
+    description="Endpoints de consulta para clientes e instituciones financieras",
     version="0.1.0",
     lifespan=lifespan,
 )
@@ -45,7 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(webhook.router, prefix="/api/webhook", tags=["webhook"])
+app.include_router(customer.router, prefix="/api/customer", tags=["customer"])
+app.include_router(farmer.router, prefix="/api/farmer", tags=["farmer"])
 
 
 @app.get("/health")

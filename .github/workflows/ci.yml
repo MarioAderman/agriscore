@@ -52,7 +52,9 @@ jobs:
 
       - name: Docker build test
         if: steps.changes.outputs.backend == 'true'
-        run: docker build -f infra/docker/Dockerfile.api -t agriscore-api:test .
+        run: |
+          docker build -f infra/docker/Dockerfile.core -t agriscore-core:test .
+          docker build -f infra/docker/Dockerfile.api-rest -t agriscore-api-rest:test .
 
   frontend:
     name: Frontend
