@@ -7,16 +7,13 @@ import TogglePill from "@/components/ui/TogglePill";
 import ScoreView from "@/components/dashboard/ScoreView";
 import DailySummary from "@/components/dashboard/DailySummary";
 import { useFarmerAgriScore, useFarmerProfile } from "@/hooks/use-farmer-data";
-import { toDisplayScore } from "@/types/farmer";
 
 export default function InicioPage() {
   const [activeTab, setActiveTab] = useState<0 | 1>(0);
   const { data: profile } = useFarmerProfile();
   const { data: agriscore } = useFarmerAgriScore();
 
-  const score = agriscore.current
-    ? toDisplayScore(agriscore.current.total)
-    : 0;
+  const score = agriscore.current?.total ?? 0;
   const riskCategory = agriscore.current?.risk_category ?? "alto";
   const firstName = profile.name.split(" ")[0];
 

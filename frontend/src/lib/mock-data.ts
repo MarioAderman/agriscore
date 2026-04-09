@@ -22,21 +22,21 @@ export const MOCK_PROFILE: FarmerProfile = {
 export const MOCK_AGRISCORE: AgriScoreResponse = {
   has_score: true,
   current: {
-    total: 81.8, // maps to ~750 on 300-850 scale
-    sub_productive: 82.0,
-    sub_climate: 71.0,
-    sub_behavioral: 68.0,
-    sub_esg: 74.0,
+    total: 750,
+    sub_productive: 751,
+    sub_climate: 691,
+    sub_behavioral: 674,
+    sub_esg: 707,
     scored_at: "2026-03-15T00:00:00Z",
     risk_category: "bajo",
   },
   history: [
-    { total: 58.2, scored_at: "2025-10-01T00:00:00Z" },
-    { total: 60.0, scored_at: "2025-11-01T00:00:00Z" },
-    { total: 63.6, scored_at: "2025-12-01T00:00:00Z" },
-    { total: 65.5, scored_at: "2026-01-01T00:00:00Z" },
-    { total: 72.7, scored_at: "2026-02-01T00:00:00Z" },
-    { total: 81.8, scored_at: "2026-03-01T00:00:00Z" },
+    { total: 620, scored_at: "2025-10-01T00:00:00Z" },
+    { total: 630, scored_at: "2025-11-01T00:00:00Z" },
+    { total: 650, scored_at: "2025-12-01T00:00:00Z" },
+    { total: 660, scored_at: "2026-01-01T00:00:00Z" },
+    { total: 700, scored_at: "2026-02-01T00:00:00Z" },
+    { total: 750, scored_at: "2026-03-01T00:00:00Z" },
   ],
 };
 

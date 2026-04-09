@@ -7,7 +7,6 @@ import TogglePill from "@/components/ui/TogglePill";
 import ScoreOverview from "@/components/reporte/ScoreOverview";
 import LinkedCredits from "@/components/reporte/LinkedCredits";
 import { useFarmerAgriScore, useFarmerProfile } from "@/hooks/use-farmer-data";
-import { toDisplayScore } from "@/types/farmer";
 import { FileDown, ChevronRight } from "lucide-react";
 
 export default function ReportePage() {
@@ -15,9 +14,7 @@ export default function ReportePage() {
   const { data: profile } = useFarmerProfile();
   const { data: agriscore } = useFarmerAgriScore();
 
-  const score = agriscore.current
-    ? toDisplayScore(agriscore.current.total)
-    : 0;
+  const score = agriscore.current?.total ?? 0;
   const history = agriscore.history ?? [];
   const firstName = profile.name.split(" ")[0];
 

@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import LinearGauge from "@/components/ui/LinearGauge";
 import LineChart from "@/components/ui/LineChart";
 import type { AgriScoreHistory } from "@/types/farmer";
-import { toDisplayScore } from "@/types/farmer";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -27,7 +26,7 @@ export default function ScoreOverview({ score, history }: ScoreOverviewProps) {
     const date = new Date(h.scored_at);
     return {
       label: MONTH_LABELS[date.getMonth()],
-      value: toDisplayScore(h.total),
+      value: h.total,
     };
   });
 

@@ -50,7 +50,3 @@ export interface ChallengesResponse {
   challenges: Challenge[];
 }
 
-/** Maps a 0-100 backend score to the 300-850 display range */
-export function toDisplayScore(backendScore: number): number {
-  return Math.round(300 + (backendScore / 100) * 550);
-}

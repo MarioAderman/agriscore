@@ -5,6 +5,7 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import verify_cognito_token
 from app.dependencies import get_db
 from app.models.database import (
     AgriScoreResult,
@@ -15,7 +16,7 @@ from app.models.database import (
     Parcela,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_cognito_token)])
 
 
 @router.get("/{phone}/profile")
@@ -76,7 +77,7 @@ async def get_farmer_agriscore(phone: str, db: AsyncSession = Depends(get_db)):
             "sub_esg": round(latest.sub_esg, 1),
             "scored_at": latest.created_at.isoformat(),
             "risk_category": (
-                "bajo" if latest.total_score >= 65 else "moderado" if latest.total_score >= 40 else "alto"
+                "bajo" if latest.total_score >= 658 else "moderado" if latest.total_score >= 520 else "alto"
             ),
         },
         "history": [

@@ -18,11 +18,11 @@ async def generate_and_notify(
 ) -> dict:
     """Generate the expediente summary and notify the farmer via WhatsApp."""
 
-    # Determine risk category
-    if total_score >= 65:
+    # Determine risk category (300-850 scale)
+    if total_score >= 658:
         category = "Bajo Riesgo"
         emoji = "🟢"
-    elif total_score >= 40:
+    elif total_score >= 520:
         category = "Riesgo Moderado"
         emoji = "🟡"
     else:
@@ -34,13 +34,13 @@ async def generate_and_notify(
     message = (
         f"🌾 *Resultado AgriScore* 🌾\n\n"
         f"Hola {name}, tu evaluación está lista:\n\n"
-        f"*AgriScore: {total_score:.0f}/100* {emoji}\n"
+        f"*AgriScore: {total_score:.0f}/850* {emoji}\n"
         f"Categoría: {category}\n\n"
         f"📊 *Desglose:*\n"
-        f"  🌱 Productivo: {sub_productive:.0f}/100\n"
-        f"  🌤️ Climático: {sub_climate:.0f}/100\n"
-        f"  ⭐ Comportamiento: {sub_behavioral:.0f}/100\n"
-        f"  ♻️ ESG: {sub_esg:.0f}/100\n\n"
+        f"  🌱 Productivo: {sub_productive:.0f}/850\n"
+        f"  🌤️ Climático: {sub_climate:.0f}/850\n"
+        f"  ⭐ Comportamiento: {sub_behavioral:.0f}/850\n"
+        f"  ♻️ ESG: {sub_esg:.0f}/850\n\n"
         f"Este perfil ya está disponible para que cualquier institución financiera lo consulte. "
         f"¡Completa retos mensuales para mejorar tu puntaje!"
     )

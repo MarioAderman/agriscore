@@ -43,38 +43,33 @@ def generate_profile() -> dict:
     months_active = int(np.clip(np.random.exponential(6), 1, 24))
     challenges_completed = int(np.clip(np.random.poisson(months_active * 0.6), 0, 24))
 
-    # Compute sub-scores (deterministic formulas)
-    sub_productive = np.clip(
-        (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20),
-        0,
-        100,
+    # Compute sub-scores on 0-100, then convert to 300-850 scale
+    def _to_850(s):
+        return 300 + (np.clip(s, 0, 100) / 100) * 550
+
+    sub_productive = _to_850(
+        (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20)
     )
-    sub_climate = np.clip(
+    sub_climate = _to_850(
         # Moderate temp is better, adequate rain, good moisture
-        (1 - abs(avg_temperature - 24) / 20) * 40 + (min(total_precipitation, 1200) / 1200) * 30 + soil_moisture * 30,
-        0,
-        100,
+        (1 - abs(avg_temperature - 24) / 20) * 40 + (min(total_precipitation, 1200) / 1200) * 30 + soil_moisture * 30
     )
-    sub_behavioral = np.clip(
-        (challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40,
-        0,
-        100,
+    sub_behavioral = _to_850(
+        (challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40
     )
-    sub_esg = np.clip(
-        (max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50,
-        0,
-        100,
+    sub_esg = _to_850(
+        (max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50
     )
 
-    # Total AgriScore: weighted combination + noise
+    # Total AgriScore: weighted combination + noise (300-850 scale)
     total_score = np.clip(
         0.40 * sub_productive
         + 0.25 * sub_climate
         + 0.20 * sub_behavioral
         + 0.15 * sub_esg
-        + np.random.normal(0, 3),  # Small noise
-        0,
-        100,
+        + np.random.normal(0, 16.5),  # Noise proportional to 300-850 range
+        300,
+        850,
     )
 
     return {
