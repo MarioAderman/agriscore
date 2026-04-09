@@ -17,7 +17,7 @@ export default function TrafficLight({ level }: TrafficLightProps) {
         return (
           <div
             key={i}
-            className={`w-[34px] h-[34px] rounded-full ${
+            className={`w-[28px] h-[28px] rounded-full ${
               isActive ? `${c.bg} ${c.glow}` : "bg-bg-card-highlight opacity-40"
             } transition-all duration-500`}
           />

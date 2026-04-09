@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import ProgressBar from "@/components/ui/ProgressBar";
 
 interface ChallengeCardProps {
@@ -23,19 +24,31 @@ export default function ChallengeCard({
   const pct = Math.round((completed / total) * 100);
 
   return (
-    <div className="bg-bg-card-alt rounded-card-lg p-4 flex items-center gap-3">
-      <span className="text-2xl shrink-0">{emoji}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold truncate">{tag}</p>
-        <div className="flex items-center gap-2 mt-1.5">
-          <ProgressBar progress={pct} color={getProgressColor(pct)} className="flex-1" />
-          <span className="text-text-label text-xs font-medium shrink-0">
-            {pct}%
-          </span>
+    <div className="bg-white/95 rounded-card-lg p-4 flex flex-col gap-2">
+      {/* Header row */}
+      <div className="flex items-start justify-between">
+        <h3 className="text-sm font-bold text-bg-darkest leading-tight flex-1 pr-2">
+          {tag}
+        </h3>
+        <ChevronRight size={16} className="text-bg-card shrink-0 mt-0.5" />
+      </div>
+
+      {/* Retos count badge */}
+      <div className="flex items-center gap-1">
+        <span className="text-[10px] text-bg-card-alt bg-gray-100 rounded px-1.5 py-0.5 font-medium">
+          {total} Retos
+        </span>
+      </div>
+
+      {/* Emoji + progress */}
+      <div className="flex items-center gap-3 mt-1">
+        <span className="text-2xl">{emoji}</span>
+        <div className="flex-1">
+          <ProgressBar progress={pct} color={getProgressColor(pct)} />
         </div>
-        <p className="text-text-label text-[10px] mt-1">
-          {total} retos · {completed} completados
-        </p>
+        <span className="text-xs font-bold text-bg-darkest shrink-0">
+          {pct}%
+        </span>
       </div>
     </div>
   );

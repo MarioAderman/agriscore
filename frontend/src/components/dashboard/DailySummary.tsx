@@ -49,11 +49,11 @@ export default function DailySummary() {
         Condiciones actuales
       </motion.h2>
 
-      {/* Top 3 conditions */}
+      {/* 2x2 conditions grid */}
       <motion.div
         variants={fadeUp}
         custom={1}
-        className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4"
+        className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4"
       >
         <ConditionCard
           icon={<Sun size={24} className="text-caution" />}
@@ -70,14 +70,6 @@ export default function DailySummary() {
           label="Humedad estimada"
           value="75%"
         />
-      </motion.div>
-
-      {/* Bottom 2 conditions */}
-      <motion.div
-        variants={fadeUp}
-        custom={2}
-        className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3"
-      >
         <Card className="flex flex-col items-center gap-2 py-3">
           <p className="text-[#c4c4c4] text-[11px] font-bold text-center leading-tight">
             Crecimiento semanal
@@ -87,12 +79,16 @@ export default function DailySummary() {
             <span className="text-white text-2xl font-bold">5%</span>
           </div>
         </Card>
-        <Card className="flex flex-col items-center gap-2 py-3">
+      </motion.div>
+
+      {/* Alerts */}
+      <motion.div variants={fadeUp} custom={2}>
+        <Card className="mt-3 flex flex-col items-center gap-2 py-3">
           <p className="text-[#c4c4c4] text-[11px] font-bold text-center">
             Alertas
           </p>
-          <TriangleAlert size={24} className="text-warning" />
-          <p className="text-white text-[10px] text-center leading-tight">
+          <TriangleAlert size={20} className="text-warning" />
+          <p className="text-white text-[10px] text-center leading-tight px-4">
             Se pronostican lluvias torrenciales la próxima semana
           </p>
         </Card>

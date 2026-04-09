@@ -99,19 +99,18 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Responsive base font — scales everything up on larger screens */
 html {
-  font-size: 16px;
+  font-size: 15px;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
 }
 
 @media (min-width: 768px) {
-  html { font-size: 17px; }
+  html { font-size: 15px; }
 }
 
 @media (min-width: 1280px) {
-  html { font-size: 18px; }
+  html { font-size: 16px; }
 }
 
 /* Selection color */

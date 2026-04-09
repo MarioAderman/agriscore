@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import AppShell from "@/components/layout/AppShell";
 import WhatsAppFAB from "@/components/ui/WhatsAppFAB";
 import { useFarmerProfile } from "@/hooks/use-farmer-data";
-import { MapPin, Phone, Globe, Calendar } from "lucide-react";
+import { MapPin, Phone, Globe, Calendar, User, FileText } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -15,40 +15,58 @@ const fadeUp = {
   }),
 };
 
-const profileFields = [
-  {
-    icon: Phone,
-    label: "Teléfono",
-    value: "(+52) 961-123-4567",
-  },
-  {
-    icon: MapPin,
-    label: "Localización",
-    value: "Sindicatura de Costa Rica, Culiacán, Sinaloa, México",
-  },
-  {
-    icon: Globe,
-    label: "Idioma/Lenguaje",
-    value: "Español",
-  },
-  {
-    icon: Calendar,
-    label: "Miembro desde",
-    value: "Mayo 2024",
-  },
-];
-
 export default function PerfilPage() {
   const { data: farmer } = useFarmerProfile();
 
+  const profileFields = [
+    {
+      icon: User,
+      label: "Nombre:",
+      value: farmer.name,
+      iconColor: "text-danger",
+    },
+    {
+      icon: FileText,
+      label: "CURP:",
+      value: "EUBJ850315HCSSCN05",
+      iconColor: "text-danger",
+    },
+    {
+      icon: Phone,
+      label: "Teléfono:",
+      value: "(+52) 968-100-4567",
+      iconColor: "text-danger",
+    },
+    {
+      icon: MapPin,
+      label: "Localidad:",
+      value: "Ocozocoautla de Espinosa, Chiapas, México",
+      iconColor: "text-danger",
+    },
+    {
+      icon: Globe,
+      label: "Idioma/Dialecto:",
+      value: "Español",
+      iconColor: "text-danger",
+    },
+    {
+      icon: Calendar,
+      label: "Antigüedad en la Plataforma:",
+      value: "Miembro desde: Enero 2019",
+      iconColor: "text-danger",
+    },
+  ];
+
   return (
     <AppShell>
-      <div className="pt-6 md:pt-10">
-        <p className="text-xs text-text-label text-center md:text-left font-display">
+      <div className="pt-4 md:pt-8">
+        <p className="text-[11px] text-text-label text-center md:text-left font-display">
           26 de Marzo del 2026
         </p>
 
-        <h1 className="text-2xl font-bold text-white mt-6">Mi perfil</h1>
+        <h1 className="text-xl font-bold text-white mt-4 text-center md:text-left">
+          Mi perfil
+        </h1>
 
         <motion.div initial="hidden" animate="visible">
           {/* Avatar */}
@@ -57,10 +75,9 @@ export default function PerfilPage() {
             custom={0}
             className="mt-6 flex flex-col items-center md:items-start"
           >
-            <div className="w-20 h-[75px] rounded-full bg-[#bbf7d0] flex items-center justify-center text-4xl">
+            <div className="w-16 h-16 rounded-full bg-[#bbf7d0] flex items-center justify-center text-3xl">
               🧑‍🌾
             </div>
-            <p className="text-white font-bold text-lg mt-3">{farmer.name}</p>
           </motion.div>
 
           {/* Data card */}
@@ -69,37 +86,24 @@ export default function PerfilPage() {
             custom={1}
             className="mt-6 bg-bg-card rounded-card-lg p-5"
           >
-            <h2 className="text-base font-bold text-white mb-4">
+            <h2 className="text-base font-bold text-white mb-4 text-center md:text-left">
               Datos Personales
             </h2>
 
-            <div className="space-y-4">
-              {/* Name + CURP */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-text-label text-[11px]">Nombre completo</p>
-                  <p className="text-white text-sm">{farmer.name}</p>
-                </div>
-                <div>
-                  <p className="text-text-label text-[11px]">CURP</p>
-                  <p className="text-white text-sm">JRLP920315HDFLRS09</p>
-                </div>
-              </div>
-
-              {/* Fields with icons */}
+            <div className="space-y-4 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-4 md:space-y-0">
               {profileFields.map((field) => {
                 const Icon = field.icon;
                 return (
                   <div key={field.label} className="flex items-start gap-3">
                     <Icon
                       size={16}
-                      className="text-accent shrink-0 mt-0.5"
+                      className={`${field.iconColor} shrink-0 mt-0.5`}
                     />
                     <div>
-                      <p className="text-text-label text-[11px]">
+                      <span className="text-text-secondary text-[12px] font-bold">
                         {field.label}
-                      </p>
-                      <p className="text-white text-sm">{field.value}</p>
+                      </span>{" "}
+                      <span className="text-white text-sm">{field.value}</span>
                     </div>
                   </div>
                 );
@@ -109,7 +113,7 @@ export default function PerfilPage() {
         </motion.div>
       </div>
 
-      <WhatsAppFAB />
+      <WhatsAppFAB showTooltipDefault />
     </AppShell>
   );
 }

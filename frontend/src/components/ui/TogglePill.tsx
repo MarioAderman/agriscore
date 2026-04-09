@@ -17,7 +17,7 @@ export default function TogglePill({
   return (
     <div
       className={cn(
-        "relative flex items-center h-12 rounded-full px-1.5",
+        "relative flex items-center h-10 rounded-full px-1",
         "bg-bg-card-highlight",
         "shadow-[inset_-1px_1px_2px_0px_rgba(41,55,71,0.2),inset_1px_-1px_2px_0px_rgba(41,55,71,0.2),inset_-1px_-1px_2px_0px_rgba(47,63,80,0.9),inset_1px_1px_3px_0px_rgba(41,55,71,0.9)]"
       )}
@@ -27,7 +27,7 @@ export default function TogglePill({
           key={label}
           onClick={() => onChange(i as 0 | 1)}
           className={cn(
-            "relative z-10 flex-1 flex items-center justify-center h-[35px] rounded-full px-4 text-sm font-medium transition-colors duration-300",
+            "relative z-10 flex-1 flex items-center justify-center h-[30px] rounded-full px-3 text-xs font-medium transition-colors duration-300",
             active === i ? "text-white" : "text-text-muted opacity-70"
           )}
         >

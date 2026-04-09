@@ -4,18 +4,18 @@ import type {
   ChallengesResponse,
 } from "@/types/farmer";
 
-export const DEMO_PHONE = "5219611234567";
+export const DEMO_PHONE = "5219681004567";
 
 export const MOCK_PROFILE: FarmerProfile = {
-  name: "José Ramón López Pérez",
+  name: "José Daniel Escutia Barragán",
   phone: DEMO_PHONE,
   onboarded: true,
-  registered_at: "2024-05-15T00:00:00Z",
+  registered_at: "2019-01-22T00:00:00Z",
   parcela: {
-    latitude: 24.8091,
-    longitude: -107.3939,
-    crop_type: "Tomate saladette",
-    area_hectares: 12.5,
+    latitude: 16.8912,
+    longitude: -93.5478,
+    crop_type: "Maíz y cereales / Frijol",
+    area_hectares: 5.23,
   },
 };
 

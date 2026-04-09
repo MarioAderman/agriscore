@@ -15,10 +15,10 @@ export default function AppShell({
 
       {/* Main content area — offset on desktop for sidebar */}
       <main
-        className="md:ml-[220px] lg:ml-[260px] pb-20 md:pb-8"
+        className="md:ml-[200px] lg:ml-[230px] pb-16 md:pb-6"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
-        <div className="w-full px-5 sm:px-8 md:px-10 lg:px-16 xl:px-20">
+        <div className="w-full px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
           {children}
         </div>
       </main>

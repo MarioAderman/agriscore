@@ -19,25 +19,25 @@ export default function InicioPage() {
 
   return (
     <AppShell>
-      <div className="pt-6 md:pt-10">
+      <div className="pt-4 md:pt-8">
         {/* Date */}
-        <p className="text-xs text-text-label text-center md:text-left font-display">
+        <p className="text-[11px] text-text-label text-center md:text-left font-display">
           26 de Marzo del 2026
         </p>
 
         {/* Greeting + avatar */}
-        <div className="mt-4 flex items-start justify-between">
+        <div className="mt-3 flex items-start justify-between">
           <div>
-            <h1 className="text-[32px] font-bold leading-[39px] text-text-secondary">
+            <h1 className="text-[26px] sm:text-[28px] font-bold leading-[32px] text-text-secondary">
               ¡Buen día,
             </h1>
-            <h1 className="text-[32px] font-bold leading-[39px] text-accent-vivid">
+            <h1 className="text-[26px] sm:text-[28px] font-bold leading-[32px] text-accent-vivid">
               Don {firstName}!
             </h1>
-            <p className="text-lg text-white mt-1">Su tierra está sana</p>
+            <p className="text-base text-white mt-1">Su tierra está sana</p>
           </div>
-          <div className="w-[58px] h-[57px] rounded-full bg-accent/20 flex items-center justify-center text-3xl mt-1 shrink-0">
-            🧑‍🌾
+          <div className="w-[46px] h-[46px] rounded-full bg-accent/20 flex items-center justify-center overflow-hidden mt-1 shrink-0">
+            <img src="/logo.png" alt="AgriScore" className="w-9 h-9 object-contain" />
           </div>
         </div>
 

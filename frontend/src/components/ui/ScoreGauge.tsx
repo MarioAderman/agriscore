@@ -153,7 +153,7 @@ export default function ScoreGauge({
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <div className="flex items-center gap-1">
           <motion.span
-            className="text-[40px] font-bold text-white leading-none"
+            className="text-[34px] font-bold text-white leading-none"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5, duration: 0.5 }}

@@ -20,13 +20,13 @@ export default function ReportePage() {
 
   return (
     <AppShell>
-      <div className="pt-6 md:pt-10">
+      <div className="pt-4 md:pt-8">
         {/* Date */}
-        <p className="text-xs text-text-label text-center md:text-left font-display">
+        <p className="text-[11px] text-text-label text-center md:text-left font-display">
           26 de Marzo del 2026
         </p>
 
-        <h1 className="text-[32px] font-bold leading-[39px] text-text-secondary mt-4">
+        <h1 className="text-[26px] font-bold leading-[32px] text-text-secondary mt-3">
           Reporte de crédito
         </h1>
 

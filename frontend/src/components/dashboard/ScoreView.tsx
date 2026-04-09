@@ -32,10 +32,10 @@ export default function ScoreView({ score, delta, riskCategory }: ScoreViewProps
       <div className="flex flex-col items-center md:flex-row md:items-start md:gap-10 mt-4">
         {/* Gauge — larger on desktop */}
         <motion.div variants={fadeUp} custom={0} className="shrink-0 hidden md:block">
-          <ScoreGauge score={score} delta={delta} size={300} />
+          <ScoreGauge score={score} delta={delta} size={250} />
         </motion.div>
         <motion.div variants={fadeUp} custom={0} className="shrink-0 md:hidden">
-          <ScoreGauge score={score} delta={delta} size={240} />
+          <ScoreGauge score={score} delta={delta} size={200} />
         </motion.div>
 
         {/* Details column */}

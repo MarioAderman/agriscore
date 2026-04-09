@@ -26,6 +26,7 @@ ml/training_data.csv
 # Dev/test scripts (not part of deliverable)
 scripts/test_*.py
 scripts/generate_demo_docs.py
+scripts/fetch_ndvi_demo.py
 
 # Claude Code internal (not project code)
 .claude/

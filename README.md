@@ -12,9 +12,6 @@ Plataforma cloud-native que genera perfiles crediticios agrícolas verificados u
 
 ## Arquitectura
 
-<!-- TODO: Reemplazar con diagrama actualizado -->
-![Arquitectura AWS](docs/references/images/AWS_architecture.png)
-
 **3 servicios Fargate aislados + pipeline serverless:**
 
 | Servicio | Ruta | Función |
