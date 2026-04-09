@@ -1,9 +1,11 @@
 """Pipeline orchestrator — triggers Step Functions or runs locally."""
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 
+import boto3
 import joblib
 
 from app.config import settings
@@ -33,6 +35,17 @@ def _load_model():
     _model = joblib.load("ml/model.pkl")
     logger.info("ML model loaded from ml/model.pkl")
     return _model
+
+
+def _invoke_sagemaker(features: dict) -> dict:
+    """Invoke SageMaker endpoint for scoring."""
+    client = boto3.client("sagemaker-runtime", region_name=settings.aws_default_region)
+    response = client.invoke_endpoint(
+        EndpointName=settings.sagemaker_endpoint,
+        ContentType="application/json",
+        Body=json.dumps(features),
+    )
+    return json.loads(response["Body"].read().decode("utf-8"))
 
 
 async def run_pipeline_local(application_id: str, base_url: str = "http://localhost:8000"):
@@ -120,21 +133,26 @@ async def run_pipeline_local(application_id: str, base_url: str = "http://localh
         # Step 4: Calculate score
         logger.info("Pipeline [%s]: Step 4 — Calculate score", application_id)
         try:
-            model = _load_model()
-            scores = predict_agriscore(
-                model=model,
-                ndvi_mean=sat_result["ndvi_mean"],
-                ndvi_trend=0.02,
-                avg_temperature=clim_result["avg_temperature"],
-                total_precipitation=clim_result["total_precipitation"],
-                soil_moisture=clim_result["soil_moisture"],
-                et0=clim_result["et0"],
-                area_hectares=parcela.area_hectares or 5.0,
-                crop_type=parcela.crop_type,
-                agri_establishments=socio_result.get("agri_establishments", 100),
-                months_active=1,
-                challenges_completed=0,
-            )
+            scoring_input = {
+                "ndvi_mean": sat_result["ndvi_mean"],
+                "ndvi_trend": 0.02,
+                "avg_temperature": clim_result["avg_temperature"],
+                "total_precipitation": clim_result["total_precipitation"],
+                "soil_moisture": clim_result["soil_moisture"],
+                "et0": clim_result["et0"],
+                "area_hectares": parcela.area_hectares or 5.0,
+                "crop_type": parcela.crop_type,
+                "agri_establishments": socio_result.get("agri_establishments", 100),
+                "months_active": 1,
+                "challenges_completed": 0,
+            }
+
+            if settings.sagemaker_endpoint:
+                logger.info("Using SageMaker endpoint: %s", settings.sagemaker_endpoint)
+                scores = _invoke_sagemaker(scoring_input)
+            else:
+                model = _load_model()
+                scores = predict_agriscore(model=model, **scoring_input)
         except Exception as e:
             logger.error("Scoring failed: %s", e)
             app.status = ApplicationStatus.failed

@@ -68,6 +68,7 @@ build_layer_common() {
   mkdir -p "$work_dir/python" "$LAYER_DIR"
 
   pip install --quiet --target "$work_dir/python" \
+    --platform manylinux2014_x86_64 --only-binary=:all: \
     httpx psycopg2-binary pydantic pydantic-settings anthropic 2>/dev/null
 
   cd "$work_dir"
@@ -85,8 +86,10 @@ build_layer_science() {
   rm -rf "$work_dir"
   mkdir -p "$work_dir/python" "$LAYER_DIR"
 
+  # SageMaker handles ML scoring, so no numpy/sklearn needed in Lambda
   pip install --quiet --target "$work_dir/python" \
-    numpy scikit-learn joblib Pillow 2>/dev/null
+    --platform manylinux2014_x86_64 --only-binary=:all: \
+    Pillow 2>/dev/null
 
   cd "$work_dir"
   zip -r "${LAYER_DIR}/science-deps.zip" python > /dev/null

@@ -23,6 +23,7 @@ dependencies = [
     "sentinelhub>=3.11.5",
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.42.0",
+    "python-jose[cryptography]>=3.3.0",
 ]
 
 [dependency-groups]

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Default models per provider
 DEFAULT_MODELS: dict[str, str] = {
-    "bedrock": "us.anthropic.claude-sonnet-4-20250514-v1:0",
+    "bedrock": "us.anthropic.claude-sonnet-4-6",
     "anthropic": "claude-sonnet-4-20250514",
     "openai": "gpt-4o",
     "groq": "meta-llama/llama-4-scout-17b-16e-instruct",

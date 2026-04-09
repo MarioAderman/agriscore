@@ -72,24 +72,36 @@ def handler(event, context):
         if not sat or not clim:
             raise Exception("Missing satellite or climate data")
 
-        model = _load_model()
+        scoring_input = {
+            "ndvi_mean": sat["ndvi_mean"],
+            "ndvi_trend": 0.02,
+            "avg_temperature": clim["avg_temperature"],
+            "total_precipitation": clim["total_precipitation"],
+            "soil_moisture": clim["soil_moisture"],
+            "et0": clim["et0"],
+            "area_hectares": parcela["area_hectares"] or 5.0,
+            "crop_type": parcela["crop_type"],
+            "agri_establishments": socio["agri_establishments"] if socio else 100,
+            "months_active": 1,
+            "challenges_completed": 0,
+        }
 
-        from app.pipeline.scoring import predict_agriscore
-
-        scores = predict_agriscore(
-            model=model,
-            ndvi_mean=sat["ndvi_mean"],
-            ndvi_trend=0.02,
-            avg_temperature=clim["avg_temperature"],
-            total_precipitation=clim["total_precipitation"],
-            soil_moisture=clim["soil_moisture"],
-            et0=clim["et0"],
-            area_hectares=parcela["area_hectares"] or 5.0,
-            crop_type=parcela["crop_type"],
-            agri_establishments=socio["agri_establishments"] if socio else 100,
-            months_active=1,
-            challenges_completed=0,
-        )
+        sagemaker_endpoint = os.environ.get("SAGEMAKER_ENDPOINT", "")
+        if sagemaker_endpoint:
+            import json
+            import boto3
+            sm_client = boto3.client("sagemaker-runtime")
+            response = sm_client.invoke_endpoint(
+                EndpointName=sagemaker_endpoint,
+                ContentType="application/json",
+                Body=json.dumps(scoring_input),
+            )
+            scores = json.loads(response["Body"].read().decode("utf-8"))
+            logger.info("Score from SageMaker: %s", scores)
+        else:
+            model = _load_model()
+            from app.pipeline.scoring import predict_agriscore
+            scores = predict_agriscore(model=model, **scoring_input)
 
         insert_agriscore_result(
             conn,
