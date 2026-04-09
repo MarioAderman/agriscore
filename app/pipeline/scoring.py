@@ -56,20 +56,12 @@ def predict_agriscore(
     def _to_850(score_0_100: float) -> float:
         return 300 + (float(np.clip(score_0_100, 0, 100)) / 100) * 550
 
-    sub_productive = _to_850(
-        (ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20)
-    )
+    sub_productive = _to_850((ndvi_mean * 60) + (ndvi_trend * 40) + (min(area_hectares, 20) / 20 * 20))
     sub_climate = _to_850(
-        (1 - abs(avg_temperature - 24) / 20) * 40
-        + (min(total_precipitation, 1200) / 1200) * 30
-        + soil_moisture * 30
+        (1 - abs(avg_temperature - 24) / 20) * 40 + (min(total_precipitation, 1200) / 1200) * 30 + soil_moisture * 30
     )
-    sub_behavioral = _to_850(
-        (challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40
-    )
-    sub_esg = _to_850(
-        (max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50
-    )
+    sub_behavioral = _to_850((challenges_completed / max(months_active, 1)) * 60 + (min(months_active, 12) / 12) * 40)
+    sub_esg = _to_850((max(ndvi_trend, 0) / 0.15) * 50 + (challenges_completed / 12) * 50)
 
     result = {
         "total_score": round(total_score, 1),

@@ -79,9 +79,7 @@ async def run_pipeline_local(application_id: str, base_url: str = "http://localh
         # Step 1: Extract docs / validate GPS
         logger.info("Pipeline [%s]: Step 1 — Extract docs", application_id)
         try:
-            step1 = await document.extract_and_validate(
-                lat, lon, farmer_name=farmer.name, crop_type=parcela.crop_type
-            )
+            step1 = await document.extract_and_validate(lat, lon, farmer_name=farmer.name, crop_type=parcela.crop_type)
             if step1.get("status") == "failed":
                 app.status = ApplicationStatus.failed
                 await db.commit()

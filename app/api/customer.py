@@ -129,7 +129,9 @@ async def get_farmer_detail(farmer_id: str, db: AsyncSession = Depends(get_db)):
             "sub_behavioral": round(score.sub_behavioral, 1),
             "sub_esg": round(score.sub_esg, 1),
             "scored_at": score.created_at.isoformat(),
-            "risk_category": ("bajo" if score.total_score >= 658 else "moderado" if score.total_score >= 520 else "alto"),
+            "risk_category": (
+                "bajo" if score.total_score >= 658 else "moderado" if score.total_score >= 520 else "alto"
+            ),
         }
 
     return response

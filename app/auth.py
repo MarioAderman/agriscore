@@ -68,10 +68,7 @@ async def verify_cognito_token(
         jwks = await _get_jwks()
         signing_key = _get_signing_key(token, jwks)
 
-        issuer = (
-            f"https://cognito-idp.{settings.aws_default_region}.amazonaws.com/"
-            f"{settings.cognito_user_pool_id}"
-        )
+        issuer = f"https://cognito-idp.{settings.aws_default_region}.amazonaws.com/{settings.cognito_user_pool_id}"
 
         claims = jwt.decode(
             token,
