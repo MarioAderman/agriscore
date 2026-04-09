@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# frontend/ — Aplicación Web AgriScore
 
-## Getting Started
+Dashboard para agricultores e instituciones financieras. Construido con Next.js 16 (App Router), React 19 y Tailwind CSS 4.
 
-First, run the development server:
+## Por qué Next.js + Tailwind
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **App Router** — Componentes de servidor por defecto, layouts anidados, y routing basado en archivos. Reduce JS enviado al cliente.
+- **React 19** — Hooks optimizados y mejor manejo de estado asíncrono.
+- **Tailwind CSS 4** — Utilidad-first sin archivos CSS custom. Consistencia visual rápida para hackathon sin sacrificar calidad de UI.
+- **TypeScript** — Tipado estricto para interfaces de datos del backend (scores, perfiles, retos).
+
+## Estructura de Páginas
+
+```
+src/app/
+├── page.tsx          # Splash / landing
+├── layout.tsx        # Layout raíz (fuentes, metadata, providers)
+├── inicio/           # Dashboard principal — score actual, resumen diario
+├── cultivo/          # Mapa satelital de parcela, tarjetas de parcelas
+├── reporte/          # Reporte crediticio — gauge de score, historial, créditos
+├── retos/            # Gamificación — retos mensuales para mejorar score
+└── perfil/           # Perfil del agricultor — datos personales, parcelas
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Componentes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/components/
+├── layout/           # Estructura de la app
+│   ├── AppShell      #   Shell desktop con sidebar
+│   ├── MobileShell   #   Shell movil con bottom nav
+│   ├── SideNav       #   Navegación lateral
+│   └── BottomNav     #   Navegación inferior móvil
+│
+├── dashboard/        # Widgets del dashboard
+│   ├── ScoreView     #   Gauge circular del AgriScore (300-850)
+│   └── DailySummary  #   Resumen de actividad diaria
+│
+├── cultivo/          # Modulo de cultivo
+│   ├── SatelliteMap  #   Mapa satelital interactivo (NDVI/RGB)
+│   └── ParcelCard    #   Tarjeta de información de parcela
+│
+├── reporte/          # Módulo de reporte crediticio
+│   ├── ScoreOverview #   Gauge lineal + grafica de historial
+│   └── LinkedCredits #   Creditos vinculados al perfil
+│
+├── retos/
+│   └── ChallengeCard #   Tarjeta de reto con progreso
+│
+└── ui/               # Componentes base reutilizables
+    ├── ScoreGauge    #   Gauge radial (arco 270°, escala 300-850)
+    ├── LinearGauge   #   Barra horizontal con segmentos de riesgo
+    ├── LineChart     #   Gráfica de línea para historial de score
+    ├── Card          #   Contenedor base con sombra
+    ├── ProgressBar   #   Barra de progreso
+    ├── TrafficLight  #   Indicador semáforo (bajo/moderado/alto)
+    ├── InfoPill      #   Etiqueta informativa
+    ├── TogglePill    #   Tab toggle (2 opciones)
+    └── WhatsAppFAB   #   Botón flotante para abrir WhatsApp
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Datos
 
-## Learn More
+El frontend opera en dos modos:
 
-To learn more about Next.js, take a look at the following resources:
+| Modo | Fuente | Cuándo |
+|------|--------|--------|
+| **Mock** | `src/lib/mock-data.ts` | Sin backend conectado (demo, desarrollo UI) |
+| **API** | `src/lib/api.ts` → backend | Backend corriendo en `localhost:8001` o produccion |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+El hook `use-farmer-data.ts` abstrae la fuente — los componentes no saben si los datos son mock o reales.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Escala de scores:** El backend envia scores directamente en escala 300-850. No hay conversión en el frontend.
 
-## Deploy on Vercel
+## Desarrollo Local
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd frontend
+npm install
+npm run dev       # http://localhost:3000
+npm run build     # Build de produccion
+npm run lint      # ESLint
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Para conectar con el backend local, configurar la URL base en `src/lib/api.ts`.
