@@ -130,26 +130,26 @@ Similar a FICO, el AgriScore opera en escala 300-850:
 
 ## Seguridad
 
-### Inyeccion de Prompts (OWASP LLM01)
+### Inyección de Prompts (OWASP LLM01)
 
-El agente implementa multiples capas de defensa:
+El agente implementa múltiples capas de defensa:
 
 1. **Etiquetado XML** — Todo contenido del usuario se envuelve en `<user_message>...</user_message>` antes de enviarlo al modelo. El system prompt instruye tratar el contenido dentro de esas etiquetas como datos, no como instrucciones.
-2. **Directivas explicitas** — El system prompt incluye reglas de seguridad: no revelar instrucciones, no ejecutar acciones fuera del dominio AgriScore, no acceder a datos de otros agricultores.
-3. **Limite de iteraciones** — Maximo 5 rondas de tool-use por mensaje (`MAX_TOOL_ROUNDS`), previniendo loops infinitos.
-4. **Herramientas de alcance limitado** — Solo 5 herramientas disponibles, cada una con alcance especifico (guardar perfil, ubicacion, disparar evaluacion, consultar score, extraer documento).
-5. **Errores enmascarados** — Las excepciones de herramientas devuelven mensajes genericos al usuario, sin exponer detalles internos.
+2. **Directivas explícitas** — El system prompt incluye reglas de seguridad: no revelar instrucciones, no ejecutar acciones fuera del dominio AgriScore, no acceder a datos de otros agricultores.
+3. **Límite de iteraciones** — Máximo 5 rondas de tool-use por mensaje (`MAX_TOOL_ROUNDS`), previniendo loops infinitos.
+4. **Herramientas de alcance limitado** — Solo 5 herramientas disponibles, cada una con alcance específico (guardar perfil, ubicación, disparar evaluación, consultar score, extraer documento).
+5. **Errores enmascarados** — Las excepciones de herramientas devuelven mensajes genéricos al usuario, sin exponer detalles internos.
 
-### Autenticacion
+### Autenticación
 
-- **Customer API** — Header `X-API-Key` validado con `secrets.compare_digest()` (comparacion timing-safe contra ataques de timing).
-- **Farmer API** — JWT firmado por Cognito, verificado via JWKS con validacion de issuer y audience.
-- **Bypass de desarrollo** — Solo activo cuando `ENVIRONMENT != production` y `COGNITO_USER_POOL_ID` no esta configurado. Bloqueado en produccion.
+- **Customer API** — Header `X-API-Key` validado con `secrets.compare_digest()` (comparación timing-safe contra ataques de timing).
+- **Farmer API** — JWT firmado por Cognito, verificado via JWKS con validación de issuer y audience.
+- **Bypass de desarrollo** — Solo activo cuando `ENVIRONMENT != production` y `COGNITO_USER_POOL_ID` no esta configurado. Bloqueado en producción.
 
 ### CORS
 
-Origenes configurables via `ALLOWED_ORIGINS` (separados por coma). En produccion se configura con el dominio especifico de CloudFront. Metodos limitados a GET/POST, headers a Content-Type, Authorization y X-API-Key.
+Orígenes configurables via `ALLOWED_ORIGINS` (separados por coma). En producción se configura con el dominio específico de CloudFront. Métodos limitados a GET/POST, headers a Content-Type, Authorization y X-API-Key.
 
 ### Base de Datos
 
-Todas las consultas usan SQLAlchemy ORM (parametrizacion automatica). Sin consultas SQL crudas en el codigo.
+Todas las consultas usan SQLAlchemy ORM (parametrización automática). Sin consultas SQL crudas en el código.

@@ -139,14 +139,14 @@ docker compose up
 
 ## Seguridad
 
-| Amenaza | Mitigacion |
+| Amenaza | Mitigación |
 |---------|-----------|
 | **Inyeccion SQL** | SQLAlchemy ORM (consultas parametrizadas). Lambda usa psycopg2 con placeholders `%s`. Sin SQL crudo. |
-| **Inyeccion de prompts** | Contenido del usuario envuelto en etiquetas `<user_message>` (separacion estructural). System prompt con directivas de seguridad explicitas. Maximo 5 iteraciones de herramientas por mensaje. |
-| **CORS** | Origenes permitidos configurables via `ALLOWED_ORIGINS` (no wildcard en produccion). Metodos y headers restringidos. |
-| **Autenticacion** | API key con comparacion timing-safe (`secrets.compare_digest`). JWT Cognito con verificacion RS256 + JWKS. Bypass de desarrollo bloqueado en produccion. |
+| **Inyeccion de prompts** | Contenido del usuario envuelto en etiquetas `<user_message>` (separacion estructural). System prompt con directivas de seguridad explícitas. Máximo 5 iteraciones de herramientas por mensaje. |
+| **CORS** | Orígenes permitidos configurables via `ALLOWED_ORIGINS` (no wildcard en produccion). Métodos y headers restringidos. |
+| **Autenticacion** | API key con comparación timing-safe (`secrets.compare_digest`). JWT Cognito con verificación RS256 + JWKS. Bypass de desarrollo bloqueado en producción. |
 | **Secretos** | Todos via variables de entorno (`.env` en gitignore). Sin credenciales hardcodeadas. |
-| **Errores** | Mensajes genericos al usuario. Excepciones internas solo en logs del servidor. |
+| **Errores** | Mensajes genéricos al usuario. Excepciones internas solo en logs del servidor. |
 
 ## Equipo Fintegra
 

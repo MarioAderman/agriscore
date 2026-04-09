@@ -91,4 +91,4 @@ Alternativa al modelo local en Lambda. Cuando `SAGEMAKER_ENDPOINT` está configu
 
 ## Despliegue
 
-`scripts/deploy_aws.sh` es el script de bootstrap para crear toda la infraestructura desde cero (una sola vez). Despues del bootstrap, GitHub Actions maneja los despliegues de código (ver `.github/workflows/`).
+`scripts/deploy_aws.sh` es el script de bootstrap para crear toda la infraestructura desde cero (una sola vez). Despúes del bootstrap, GitHub Actions maneja los despliegues de código (ver `.github/workflows/`).
