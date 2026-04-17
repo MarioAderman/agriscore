@@ -8,7 +8,7 @@ Plataforma cloud-native que genera perfiles crediticios agrícolas verificados u
 ## Demo
 
 <!-- TODO: Reemplazar con enlace al video de YouTube -->
-[![Demo AgriScore](https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube)](https://youtube.com/PLACEHOLDER)
+[![Demo AgriScore](https://img.shields.io/badge/YouTube-Demo-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/shorts/crA8oRULsgo)
 
 ## Arquitectura
 
